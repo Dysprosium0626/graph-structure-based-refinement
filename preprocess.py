@@ -35,7 +35,7 @@ class Formula(Enum):
 def GP13(line_suspicion):
     for line in line_suspicion:
         ef, ep, nf, np = line_suspicion[line].values()
-        line_suspicion[line]['suspicion'] = ef * (1 + 1 / (2 * ep + ef))
+        line_suspicion[line]['suspicion'] = ef * (1 + 1 / (2 * ep + ef)) if ef != 0 else 0
     return line_suspicion
 
 
@@ -67,10 +67,9 @@ def OP2(line_suspicion):
 def Tarantula(line_suspicion):
     for line in line_suspicion:
         ef, ep, nf, np = line_suspicion[line].values()
-        ef_ratio_in_covered_cases = ef / (ef + ep)
-        ef_ratio_in_failed_cases = ef / (ef + nf)
-        ep_ratio_in_passed_cases = ep / (ep + np)
-        line_suspicion[line]['suspicion'] = ef_ratio_in_covered_cases / \
+        ef_ratio_in_failed_cases = ef / (ef + nf) if ef + nf != 0 else 0
+        ep_ratio_in_passed_cases = ep / (ep + np) if ep + np != 0 else 1
+        line_suspicion[line]['suspicion'] = ef_ratio_in_failed_cases / \
             (ef_ratio_in_failed_cases + ep_ratio_in_passed_cases)
     return line_suspicion
 
