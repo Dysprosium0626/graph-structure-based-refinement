@@ -48,7 +48,7 @@ def create_adjacency_matrix(length1: int, length2: int, edges: list, suspicion_o
     for i in range(length1):
         for j in range(length2):
             if matrix[i][j] > 0:  # Normalize only non-zero elements
-                matrix[i][j] = (matrix[i][j] - min_val) / (max_val - min_val)
+                matrix[i][j] = (matrix[i][j] - min_val) / (max_val - min_val) if max_val != min_val else 0.5
     return matrix
 
 
@@ -160,7 +160,7 @@ def process_method_to_method_matrix(data: list, length: int, method_suspicion: d
     for i in range(length):
         for j in range(length):
             if matrix[i][j] > 0:  # Normalize only non-zero elements
-                matrix[i][j] = (matrix[i][j] - min_val) / (max_val - min_val)
+                matrix[i][j] = (matrix[i][j] - min_val) / (max_val - min_val) if max_val != min_val else 0.5
     return matrix
 
 
