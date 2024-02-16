@@ -87,7 +87,7 @@ def page_rank_results_to_string(test_case_results, lengths, prefix=""):
     """
     len_methods, len_lines, len_rtest, len_ftest = lengths
     results_dict = {
-        f"{prefix}Lengths": {
+        f"{prefix}_lengths": {
             "methods": len_methods,
             "statements": len_lines,
             "rtest": len_rtest,
