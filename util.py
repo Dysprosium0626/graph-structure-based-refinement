@@ -1,4 +1,6 @@
+from enum import Enum
 import json
+import math
 import os
 import logging
 
@@ -48,6 +50,138 @@ def adjacency_matrix_to_mermaid(matrix, number_of_methods, number_of_lines, numb
 
     mermaid_str += "```"
     return mermaid_str
+
+
+class FaultLocalization(Enum):
+    SBFL = 0,
+    MBFL = 1
+
+
+class Formula(Enum):
+    GP13 = 0,
+    OCHIAI = 1,
+    JACCARD = 2,
+    OP2 = 3,
+    TARANTULA = 4,
+    DSTAR = 5
+
+    @staticmethod
+    def get_formula_name(formula) -> str:
+        if formula == Formula.GP13:
+            return "GP13"
+        elif formula == Formula.OCHIAI:
+            return "Ochiai"
+        elif formula == Formula.JACCARD:
+            return "Jaccard"
+        elif formula == Formula.OP2:
+            return "OP2"
+        elif formula == Formula.TARANTULA:
+            return "Tarantula"
+        elif formula == Formula.DSTAR:
+            return "DSTAR"
+
+
+def GP13(line_suspicion, type: FaultLocalization):
+    if type == FaultLocalization.SBFL:
+        for line in line_suspicion:
+            ef, ep, nf, np = line_suspicion[line]['stats'].values()
+            line_suspicion[line]['suspicion'] = ef * \
+                (1 + 1 / (2 * ep + ef)) if ef != 0 else 0
+        return line_suspicion
+    elif type == FaultLocalization.MBFL:
+        for line in line_suspicion:
+            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            line_suspicion[line]['suspicion'] = kf * \
+                (1 + 1 / (2 * kp + kf)) if kf != 0 else 0
+        return line_suspicion
+        return
+
+
+def Ochiai(line_suspicion, type: FaultLocalization):
+    if type == FaultLocalization.SBFL:
+        for line in line_suspicion:
+            ef, ep, nf, np = line_suspicion[line]['stats'].values()
+            denominator = math.sqrt((ef + nf) * (ef + np))
+            line_suspicion[line]['suspicion'] = ef / \
+                denominator if denominator > 0 else 0
+        return line_suspicion
+    elif type == FaultLocalization.MBFL:
+        for line in line_suspicion:
+            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            denominator = math.sqrt((kf + nf) * (kf + np))
+            line_suspicion[line]['suspicion'] = kf / \
+                denominator if denominator > 0 else 0
+        return line_suspicion
+
+
+def Jaccard(line_suspicion, type: FaultLocalization):
+    if type == FaultLocalization.SBFL:
+        for line in line_suspicion:
+            ef, ep, nf, np = line_suspicion[line]['stats'].values()
+            denominator = ef + nf + ep
+            line_suspicion[line]['suspicion'] = ef / \
+                denominator if denominator > 0 else 0
+        return line_suspicion
+    elif type == FaultLocalization.MBFL:
+        for line in line_suspicion:
+            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            denominator = kf + nf + kp
+            line_suspicion[line]['suspicion'] = kf / \
+                denominator if denominator > 0 else 0
+        return line_suspicion
+
+
+def OP2(line_suspicion, type: FaultLocalization):
+    if type == FaultLocalization.SBFL:
+        for line in line_suspicion:
+            ef, ep, nf, np = line_suspicion[line]['stats'].values()
+            line_suspicion[line]['suspicion'] = ef - ep / (np + ep + 1)
+        return line_suspicion
+    elif type == FaultLocalization.MBFL:
+        for line in line_suspicion:
+            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            line_suspicion[line]['suspicion'] = kf - kp / (np + kp + 1)
+        return line_suspicion
+
+
+def Tarantula(line_suspicion, type: FaultLocalization):
+    if type == FaultLocalization.SBFL:
+        for line in line_suspicion:
+            ef, ep, nf, np = line_suspicion[line]['stats'].values()
+            if ef == 0:
+                line_suspicion[line]['suspicion'] = 0
+                continue
+            ef_ratio_in_failed_cases = ef / (ef + nf) if ef + nf != 0 else 0
+            ep_ratio_in_passed_cases = ep / (ep + np) if ep + np != 0 else 1
+            line_suspicion[line]['suspicion'] = ef_ratio_in_failed_cases / \
+                (ef_ratio_in_failed_cases + ep_ratio_in_passed_cases)
+        return line_suspicion
+    elif type == FaultLocalization.MBFL:
+        for line in line_suspicion:
+            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            if kf == 0:
+                line_suspicion[line]['suspicion'] = 0
+                continue
+            kf_ratio_in_failed_cases = kf / (kf + nf) if kf + nf != 0 else 0
+            kp_ratio_in_passed_cases = kp / (kp + np) if kp + np != 0 else 1
+            line_suspicion[line]['suspicion'] = kf_ratio_in_failed_cases / \
+                (kf_ratio_in_failed_cases + kp_ratio_in_passed_cases)
+        return line_suspicion
+
+
+def Dstar(line_suspicion, type: FaultLocalization, star_value=2):
+    if type == FaultLocalization.SBFL:
+        for line in line_suspicion:
+            ef, ep, nf, np = line_suspicion[line]['stats'].values()
+            line_suspicion[line]['suspicion'] = math.pow(
+                ef, star_value) / ((ep + nf)) if ep + nf > 0 else 0
+        return line_suspicion
+    elif type == FaultLocalization.MBFL:
+        for line in line_suspicion:
+            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            line_suspicion[line]['suspicion'] = math.pow(
+                kf, star_value) / ((kp + nf)) if kp + nf > 0 else 0
+        return line_suspicion
 
 
 if __name__ == "__main__":
