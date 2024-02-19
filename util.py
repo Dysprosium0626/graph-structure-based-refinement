@@ -90,7 +90,7 @@ def GP13(line_suspicion, type: FaultLocalization):
         return line_suspicion
     elif type == FaultLocalization.MBFL:
         for line in line_suspicion:
-            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            kp, np, kf, nf = line_suspicion[line]['stats'].values()
             line_suspicion[line]['suspicion'] = kf * \
                 (1 + 1 / (2 * kp + kf)) if kf != 0 else 0
         return line_suspicion
@@ -107,7 +107,7 @@ def Ochiai(line_suspicion, type: FaultLocalization):
         return line_suspicion
     elif type == FaultLocalization.MBFL:
         for line in line_suspicion:
-            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            kp, np, kf, nf = line_suspicion[line]['stats'].values()
             denominator = math.sqrt((kf + nf) * (kf + np))
             line_suspicion[line]['suspicion'] = kf / \
                 denominator if denominator > 0 else 0
@@ -124,7 +124,7 @@ def Jaccard(line_suspicion, type: FaultLocalization):
         return line_suspicion
     elif type == FaultLocalization.MBFL:
         for line in line_suspicion:
-            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            kp, np, kf, nf = line_suspicion[line]['stats'].values()
             denominator = kf + nf + kp
             line_suspicion[line]['suspicion'] = kf / \
                 denominator if denominator > 0 else 0
@@ -139,7 +139,7 @@ def OP2(line_suspicion, type: FaultLocalization):
         return line_suspicion
     elif type == FaultLocalization.MBFL:
         for line in line_suspicion:
-            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            kp, np, kf, nf = line_suspicion[line]['stats'].values()
             line_suspicion[line]['suspicion'] = kf - kp / (np + kp + 1)
         return line_suspicion
 
@@ -158,7 +158,7 @@ def Tarantula(line_suspicion, type: FaultLocalization):
         return line_suspicion
     elif type == FaultLocalization.MBFL:
         for line in line_suspicion:
-            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            kp, np, kf, nf = line_suspicion[line]['stats'].values()
             if kf == 0:
                 line_suspicion[line]['suspicion'] = 0
                 continue
@@ -178,7 +178,7 @@ def Dstar(line_suspicion, type: FaultLocalization, star_value=2):
         return line_suspicion
     elif type == FaultLocalization.MBFL:
         for line in line_suspicion:
-            kf, kp, nf, np = line_suspicion[line]['stats'].values()
+            kp, np, kf, nf = line_suspicion[line]['stats'].values()
             line_suspicion[line]['suspicion'] = math.pow(
                 kf, star_value) / ((kp + nf)) if kp + nf > 0 else 0
         return line_suspicion

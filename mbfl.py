@@ -7,6 +7,7 @@ from util import *
 
 fastrand.pcg32_seed(0)
 
+
 def reduce_passed_test_cases(data, passed_test_cases_weights, percentage: float) -> list:
     """
     Get the list of passed test cases after reduction
@@ -107,7 +108,7 @@ def CalculateSuspiciousnessByMBFL(formula_type, line_suspicion):
 
 
 def MBFL(mutants2lines, mutants_list, line_list, original_line_test_case_data, mutants2passed_test_cases, mutants2failed_test_cases, formula):
-    
+
     line_suspicion = {number_index: {"mutants": [], "suspicion": 0}
                       for number_index in line_list}
     mutant_suspicion = {number_index: {"stats": {'akp': 0, 'anp': 0, 'akf': 0, 'anf': 0}, "suspicion": 0}
@@ -118,20 +119,21 @@ def MBFL(mutants2lines, mutants_list, line_list, original_line_test_case_data, m
     for mutant, passed_test_cases in mutants2passed_test_cases.items():
         line = mutants2lines[mutant]
         for passed_test_case in passed_test_cases:
-            mutant_set[mutant]["passed"].add(passed_test_case)
-            if passed_test_case in original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"]:
-                mutant_set[mutant]["non-killed"].add(passed_test_case)
-            else:
-                mutant_set[mutant]["killed"].add(passed_test_case)
+            mutant_set[mutant]["killed"].add(passed_test_case)
+        mutant_set[mutant]["passed"] = set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"])
+        mutant_set[mutant]["non-killed"] = set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"]).difference(mutant_set[mutant]["killed"])
 
     for mutant, failed_test_cases in mutants2failed_test_cases.items():
         line = mutants2lines[mutant]
         for failed_test_case in failed_test_cases:
             mutant_set[mutant]["failed"].add(failed_test_case)
-            if failed_test_case in original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"]:
-                mutant_set[mutant]["non-killed"].add(failed_test_case)
-            else:
-                mutant_set[mutant]["killed"].add(failed_test_case)
+            mutant_set[mutant]["killed"].add(failed_test_case)
+        mutant_set[mutant]["failed"] = set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"])
+        mutant_set[mutant]["non-killed"].union(set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"]).difference(mutant_set[mutant]["killed"]))
 
     for index, test_cases_sets in mutant_set.items():
         mutant_suspicion[index]["stats"]["akp"] = len(
@@ -143,13 +145,14 @@ def MBFL(mutants2lines, mutants_list, line_list, original_line_test_case_data, m
         mutant_suspicion[index]["stats"]["anf"] = len(
             test_cases_sets["non-killed"].intersection(test_cases_sets["failed"]))
     mutant_suspicion = CalculateSuspiciousnessByMBFL(formula, mutant_suspicion)
-
+    print("mutant set", mutant_set)
+    print("mutant suspicion", mutant_suspicion)
     for mutant in mutant_suspicion.keys():
         line = mutants2lines[mutant]
         line_suspicion[line]["mutants"].append(mutant)
         if line_suspicion[line]["suspicion"] < mutant_suspicion[mutant]["suspicion"]:
             line_suspicion[line]["suspicion"] = mutant_suspicion[mutant]["suspicion"]
-    return line_suspicion
+    return line_suspicion, mutant_suspicion
 
 
 if __name__ == "__main__":
@@ -207,18 +210,18 @@ if __name__ == "__main__":
                 mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list = refactor_data(
                     statements_reduced, passed_test_cases_reduced, data["edge12"], data["edge13"], data["edge14"])
                 for formula in formulas:
-                    line_suspicion = MBFL(mutants2lines=mutant2line_reduced, mutants_list=mutant_list,
-                                          line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
-                                          mutants2passed_test_cases=mutant2rtest_reduced,
-                                          mutants2failed_test_cases=mutant2ftest_reduced,
-                                          formula=formula)
+                    line_suspicion, mutant_suspicion = MBFL(mutants2lines=mutant2line_reduced, mutants_list=mutant_list,
+                                                            line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
+                                                            mutants2passed_test_cases=mutant2rtest_reduced,
+                                                            mutants2failed_test_cases=mutant2ftest_reduced,
+                                                            formula=formula)
                     result = {
                         "proj": project_name,
                         "formula": Formula.get_formula_name(formula),
                         # "method suspicion": method_suspicion,
-                        "line suspicion": line_suspicion
+                        "line suspicion": line_suspicion,
+                        "mutant suspicion": mutant_suspicion
                     }
 
                     dictionary_to_json(
                         result, f"./data/mbfl/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json")
-                    exit(0)
