@@ -1,11 +1,21 @@
+import argparse
 import heapq
 import json
 import logging
-import fastrand
+import random
 
 from util import *
 
-fastrand.pcg32_seed(0)
+random.seed(0)
+
+# 创建命令行参数解析器
+parser = argparse.ArgumentParser(
+    description='Reduce statements and test cases.')
+parser.add_argument('reduced_statements_ratio', type=float,
+                    help='Ratio for reducing statements (e.g. 0.7 for 70%)')
+parser.add_argument('reduced_test_cases_ratio', type=float,
+                    help='Ratio for reducing passed test cases (e.g. 0.7 for 70%)')
+args = parser.parse_args()
 
 
 def reduce_passed_test_cases(data, passed_test_cases_weights, percentage: float) -> list:
@@ -62,7 +72,7 @@ def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mut
             mutant2line_reduced[mutant] = line
             mutant_list.append(mutant)
         else:
-            rand = fastrand.pcg32bounded(101)
+            rand = random.randint(0, 100)
             if rand > prob * 100:
                 mutant2line_reduced[mutant] = line
                 mutant_list.append(mutant)
@@ -145,8 +155,8 @@ def MBFL(mutants2lines, mutants_list, line_list, original_line_test_case_data, m
         mutant_suspicion[index]["stats"]["anf"] = len(
             test_cases_sets["non-killed"].intersection(test_cases_sets["failed"]))
     mutant_suspicion = CalculateSuspiciousnessByMBFL(formula, mutant_suspicion)
-    print("mutant set", mutant_set)
-    print("mutant suspicion", mutant_suspicion)
+    # print("mutant set", mutant_set)
+    # print("mutant suspicion", mutant_suspicion)
     for mutant in mutant_suspicion.keys():
         line = mutants2lines[mutant]
         line_suspicion[line]["mutants"].append(mutant)
@@ -174,7 +184,7 @@ if __name__ == "__main__":
             mutation = data['mutation']
             ftest = data['ftest']
             rtest = data['rtest']
-            print(project_name)
+            # print(project_name)
             len_methods = len(data['methods'])
             len_lines = len(data['lines'])
             len_mutation = len(data['mutation'])
@@ -203,9 +213,9 @@ if __name__ == "__main__":
                 # Reduce statements with low suspiciousness and passed test case with low contribution
                 # These two kinds of data should be reduced based on pre-computed result
                 statements_reduced = reduce_statements(
-                    lines.values(), difference, 0.7)
+                    lines.values(), difference, args.reduced_statements_ratio)
                 passed_test_cases_reduced = reduce_passed_test_cases(
-                    rtest.values(), passed_test_cases, 0.7)
+                    rtest.values(), passed_test_cases, args.reduced_test_cases_ratio)
 
                 mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list = refactor_data(
                     statements_reduced, passed_test_cases_reduced, data["edge12"], data["edge13"], data["edge14"])
@@ -222,6 +232,7 @@ if __name__ == "__main__":
                         "line suspicion": line_suspicion,
                         "mutant suspicion": mutant_suspicion
                     }
-
+                    print(result)
                     dictionary_to_json(
-                        result, f"./data/mbfl/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json")
+                        result, f"./data/mbfl/{dataset_name}/{args.reduced_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
+                    exit(0)

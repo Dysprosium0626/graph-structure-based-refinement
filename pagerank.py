@@ -59,7 +59,7 @@ def page_rank(file_path):
 
     number_of_pages = len(adjacency_list[0])
     adjacency_matrix = np.array(adjacency_list, dtype=float)
-    print(adjacency_matrix)
+    # print(adjacency_matrix)
     initial_rank_vector = np.ones(number_of_pages)
     damping_factor = 0.8
     uniform_matrix = np.ones((number_of_pages, number_of_pages))
@@ -123,8 +123,8 @@ if __name__ == '__main__':
             passed_test_cases_filepath)
         failed_test_cases_matrix_after_page_rank = page_rank(
             failed_test_cases_filepath)
-        print(passed_test_cases_matrix_after_page_rank.round(6))
-        print(failed_test_cases_matrix_after_page_rank.round(6))
+        # print(passed_test_cases_matrix_after_page_rank.round(6))
+        # print(failed_test_cases_matrix_after_page_rank.round(6))
         # Format lengths for output
         lengths = (len(data['methods']), len(data['lines']),
                    len(data['rtest']), len(data['ftest']))
@@ -137,27 +137,41 @@ if __name__ == '__main__':
         difference_results_str = page_rank_results_to_string(failed_test_cases_matrix_after_page_rank[0:len(data['methods']) + len(
             data['lines'])] - passed_test_cases_matrix_after_page_rank[0:len(data['methods']) + len(data['lines'])], lengths, prefix="failed_passed_diff")
 
-        # Define paths for output files
         passed_test_cases_dir = os.path.join(
             "data", 'page_rank', "passed_test_cases", dataset)
         failed_test_cases_dir = os.path.join(
             "data", 'page_rank', "failed_test_cases", dataset)
         difference_dir = os.path.join(
             "data", 'page_rank', "difference", dataset)
+
         os.makedirs(passed_test_cases_dir, exist_ok=True)
         os.makedirs(failed_test_cases_dir, exist_ok=True)
         os.makedirs(difference_dir, exist_ok=True)
-        # Write results to files
-        # for prefix, results_str in [("passed_test_cases", passed_results_str), ("failed_test_cases", failed_results_str), ("failed_passed_diff", difference_results_str)]:
+
         passed_test_cases_page_rank_result = os.path.join(
             passed_test_cases_dir, f'{project_name}.json')
         failed_test_cases_page_rank_result = os.path.join(
             failed_test_cases_dir, f'{project_name}.json')
         difference_page_rank_result = os.path.join(
             difference_dir, f'{project_name}.json')
-        with open(passed_test_cases_page_rank_result, 'w') as json_file:
-            json.dump(passed_results_str, json_file, indent=4)
-        with open(failed_test_cases_page_rank_result, 'w') as json_file:
-            json.dump(failed_results_str, json_file, indent=4)
-        with open(difference_page_rank_result, 'w') as json_file:
-            json.dump(difference_results_str, json_file, indent=4)
+
+        if not os.path.isfile(passed_test_cases_page_rank_result):
+            with open(passed_test_cases_page_rank_result, 'w') as json_file:
+                json.dump(passed_results_str, json_file, indent=4)
+        else:
+            logging.info(
+                f"File {passed_test_cases_page_rank_result} already exists. Skipping...")
+
+        if not os.path.isfile(failed_test_cases_page_rank_result):
+            with open(failed_test_cases_page_rank_result, 'w') as json_file:
+                json.dump(failed_results_str, json_file, indent=4)
+        else:
+            logging.info(
+                f"File {failed_test_cases_page_rank_result} already exists. Skipping...")
+
+        if not os.path.isfile(difference_page_rank_result):
+            with open(difference_page_rank_result, 'w') as json_file:
+                json.dump(difference_results_str, json_file, indent=4)
+        else:
+            logging.info(
+                f"File {difference_page_rank_result} already exists. Skipping...")

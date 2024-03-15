@@ -6,6 +6,9 @@ import logging
 
 
 def dictionary_to_json(dictionary: dict, file_path: str):
+    if os.path.isfile(file_path):
+        print(f"File {file_path} already exists. Skipping...")
+        return
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
         os.makedirs(directory, exist_ok=True)

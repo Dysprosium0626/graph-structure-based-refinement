@@ -246,14 +246,25 @@ if __name__ == '__main__':
         graph_with_passed_test_cases_file_path = f'./data/graph/passed_test_cases/{dataset}/{project_name}_matrix.pkl'
         graph_with_failed_test_cases_file_path = f'./data/graph/failed_test_cases/{dataset}/{project_name}_matrix.pkl'
 
-        directory = os.path.dirname(graph_with_passed_test_cases_file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
-        with open(graph_with_passed_test_cases_file_path, 'wb') as wf:
-            pickle.dump(graph_with_passed_test_cases, wf)
-        directory = os.path.dirname(graph_with_failed_test_cases_file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory, exist_ok=True)
-        with open(graph_with_failed_test_cases_file_path, 'wb') as wf:
-            pickle.dump(graph_with_failed_test_cases, wf)
+        # 为 graph_with_passed_test_cases_file_path 检查文件是否已存在
+        if not os.path.isfile(graph_with_passed_test_cases_file_path):
+            directory = os.path.dirname(graph_with_passed_test_cases_file_path)
+            if not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+            with open(graph_with_passed_test_cases_file_path, 'wb') as wf:
+                pickle.dump(graph_with_passed_test_cases, wf)
+        else:
+            logging.info(f"File {graph_with_passed_test_cases_file_path} already exists. Skipping...")
+
+        # 为 graph_with_failed_test_cases_file_path 检查文件是否已存在
+        if not os.path.isfile(graph_with_failed_test_cases_file_path):
+            directory = os.path.dirname(graph_with_failed_test_cases_file_path)
+            if not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+            with open(graph_with_failed_test_cases_file_path, 'wb') as wf:
+                pickle.dump(graph_with_failed_test_cases, wf)
+        else:
+            logging.info(f"File {graph_with_failed_test_cases_file_path} already exists. Skipping...")
+
         logging.info(f"Process {project_name} finished")
+
