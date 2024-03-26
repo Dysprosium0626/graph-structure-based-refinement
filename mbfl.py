@@ -214,8 +214,6 @@ if __name__ == "__main__":
                 logging.info("Load passed test case from JSON file")
 
             for formula in formulas:
-                if formula != Formula.GP13:
-                    continue
                 with open(f'./data/sbfl/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json', 'r') as sbfl_file:
                     sbfl_result = json.load(sbfl_file)
                     logging.info("Load passed test case from JSON file")

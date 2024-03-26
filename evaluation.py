@@ -7,6 +7,8 @@ import sys
 
 import numpy as np
 import pandas as pd
+import openpyxl
+from openpyxl.styles import PatternFill
 
 from util import Formula
 
@@ -68,7 +70,7 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
                 method_stat[method]["line_count"] += 1
 
     # 计算最终结果
-    result = {"top1": 0, "top3": 0, "top5": 0,
+    result = {"project_name": project_name, "top1": 0, "top3": 0, "top5": 0,
               "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0}
     for method, stat in method_stat.items():
         if stat["top1"] != 0:
@@ -88,68 +90,60 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
     return result
 
 
-if __name__ == "__main__":
-    csv_file_name = 'evaluation_results.csv'
-    csv_headers = ['function', 'type', 'selected_statements_ratio',
-                   'reduced_test_cases_ratio', 'reduced_mutant_ratio', 'ftop1', 'ftop3', 'ftop5', 'ftop10', 'MAP', 'MFR', 'MTP']
+def evaluate_SBFL():
     all_results = pd.DataFrame()
-    with open(csv_file_name, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=csv_headers)
-        writer.writeheader()
-        dataset = ['Lang']
-        formulas = [formula for _,
-                    formula in Formula.__members__.items()]
-        selected_statements_ratios = np.arange(0, 1.2, 0.2)
-        reduced_test_cases_ratios = np.arange(0, 1.2, 0.2)
-        reduced_mutant_ratios = np.arange(0, 1.2, 0.2)
-        for dataset_name in dataset:
-            with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
-                structural_data = json.load(rf)
-            for selected_statements_ratio in selected_statements_ratios:
-                for reduced_test_cases_ratio in reduced_test_cases_ratios:
-                    for reduced_mutant_ratio in reduced_mutant_ratios:
-                        for formula in formulas:
-                            sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                                 "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0}
-                            result = {"top1": 0, "top3": 0, "top5": 0,
-                                      "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
-                            for data in structural_data:
-                                project_name = data['proj']
-                                fault = data['ans']
-                                methods = data['methods']
-                                lines = data['lines']
-                                method2lines = data['edge2']
-                                directory_path = f'./data/mbfl/{dataset_name}/{selected_statements_ratio:.1f}/{reduced_test_cases_ratio:.1f}/{reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}'
-                                result = get_top_suspicious_lines_from_all_files(
-                                    directory_path, project_name, fault, method2lines)
-                                sum_up_evaluation["top1"] += result["top1"]
-                                sum_up_evaluation["top3"] += result["top3"]
-                                sum_up_evaluation["top5"] += result["top5"]
-                                sum_up_evaluation["top10"] += result["top10"]
-                                sum_up_evaluation["MFR"] += result["FR"]
-                                sum_up_evaluation["MAR"] += result["AR"]
-                                sum_up_evaluation["fault_count"] += 1
-                            sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
-                                sum_up_evaluation["fault_count"]
-                            sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
-                                sum_up_evaluation["fault_count"]
-                            csv_row = {
-                                'function': sum_up_evaluation["formula"],
-                                'type': 'worst',
-                                'selected_statements_ratio': selected_statements_ratio,
-                                'reduced_test_cases_ratio': reduced_test_cases_ratio,
-                                "reduced_mutant_ratio": reduced_mutant_ratio,
-                                'ftop1': sum_up_evaluation["top1"],
-                                'ftop3': sum_up_evaluation["top3"],
-                                'ftop5': sum_up_evaluation["top5"],
-                                'ftop10': sum_up_evaluation["top10"],
-                                'MAP': sum_up_evaluation["MAR"],
-                                'MFR': sum_up_evaluation["MFR"],
-                                'MTP': result["MTP"],
-                            }
-                            temp_df = pd.DataFrame([csv_row])
-                            all_results = pd.concat(
-                                [all_results, temp_df], ignore_index=True)
+
+    dataset = ['Lang']
+    formulas = [formula for _,
+                formula in Formula.__members__.items()]
+    for dataset_name in dataset:
+        with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
+            structural_data = json.load(rf)
+        for selected_statements_ratio in selected_statements_ratios:
+            for reduced_test_cases_ratio in reduced_test_cases_ratios:
+                for reduced_mutant_ratio in reduced_mutant_ratios:
+                    for formula in formulas:
+                        sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
+                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0}
+                        result = {"top1": 0, "top3": 0, "top5": 0,
+                                  "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
+                        for data in structural_data:
+                            project_name = data['proj']
+                            fault = data['ans']
+                            methods = data['methods']
+                            lines = data['lines']
+                            method2lines = data['edge2']
+                            directory_path = f'./data/mbfl/{dataset_name}/{selected_statements_ratio:.1f}/{reduced_test_cases_ratio:.1f}/{reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}'
+                            result = get_top_suspicious_lines_from_all_files(
+                                directory_path, project_name, fault, method2lines)
+                            sum_up_evaluation["top1"] += result["top1"]
+                            sum_up_evaluation["top3"] += result["top3"]
+                            sum_up_evaluation["top5"] += result["top5"]
+                            sum_up_evaluation["top10"] += result["top10"]
+                            sum_up_evaluation["MFR"] += result["FR"]
+                            sum_up_evaluation["MAR"] += result["AR"]
+                            sum_up_evaluation["fault_count"] += 1
+                        sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
+                            sum_up_evaluation["fault_count"]
+                        sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
+                            sum_up_evaluation["fault_count"]
+                        csv_row = {
+                            'function': sum_up_evaluation["formula"],
+                            'type': 'worst',
+                            'selected_statements_ratio': selected_statements_ratio,
+                            'reduced_test_cases_ratio': reduced_test_cases_ratio,
+                            "reduced_mutant_ratio": reduced_mutant_ratio,
+                            'ftop1': sum_up_evaluation["top1"],
+                            'ftop3': sum_up_evaluation["top3"],
+                            'ftop5': sum_up_evaluation["top5"],
+                            'ftop10': sum_up_evaluation["top10"],
+                            'MAP': sum_up_evaluation["MAR"],
+                            'MFR': sum_up_evaluation["MFR"],
+                            'MTP': result["MTP"],
+                        }
+                        temp_df = pd.DataFrame([csv_row])
+                        all_results = pd.concat(
+                            [all_results, temp_df], ignore_index=True)
     excel_file_name = 'evaluation_results.xlsx'
     with pd.ExcelWriter(excel_file_name) as writer:
         for formula in formulas:
@@ -157,3 +151,87 @@ if __name__ == "__main__":
                                      == Formula.get_formula_name(formula)]
             formula_df.to_excel(
                 writer, sheet_name=Formula.get_formula_name(formula), index=False)
+
+
+def evaluate_contribution():
+    pass
+
+
+if __name__ == "__main__":
+    all_results = pd.DataFrame()
+
+    dataset = ['Lang']
+    formulas = [formula for _,
+                formula in Formula.__members__.items()]
+    selected_statements_ratios = np.arange(0.2, 1.2, 0.2)
+    reduced_test_cases_ratios = np.arange(0.2, 1.2, 0.2)
+    reduced_mutant_ratios = np.arange(0.2, 1.2, 0.2)
+    for dataset_name in dataset:
+        with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
+            structural_data = json.load(rf)
+        for selected_statements_ratio in selected_statements_ratios:
+            for reduced_test_cases_ratio in reduced_test_cases_ratios:
+                for reduced_mutant_ratio in reduced_mutant_ratios:
+                    for formula in formulas:
+                        sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
+                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0}
+                        result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
+                                  "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
+                        for data in structural_data:
+                            project_name = data['proj']
+                            fault = data['ans']
+                            methods = data['methods']
+                            lines = data['lines']
+                            method2lines = data['edge2']
+                            directory_path = f'./data/mbfl/{dataset_name}/{selected_statements_ratio:.1f}/{reduced_test_cases_ratio:.1f}/{reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}'
+                            result = get_top_suspicious_lines_from_all_files(
+                                directory_path, project_name, fault, method2lines)
+                            sum_up_evaluation["top1"] += result["top1"]
+                            sum_up_evaluation["top3"] += result["top3"]
+                            sum_up_evaluation["top5"] += result["top5"]
+                            sum_up_evaluation["top10"] += result["top10"]
+                            sum_up_evaluation["MFR"] += result["FR"]
+                            sum_up_evaluation["MAR"] += result["AR"]
+                            sum_up_evaluation["fault_count"] += 1
+                        sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
+                            sum_up_evaluation["fault_count"]
+                        sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
+                            sum_up_evaluation["fault_count"]
+                        csv_row = {
+                            'function': sum_up_evaluation["formula"],
+                            'type': 'worst',
+                            'selected_statements_ratio': selected_statements_ratio,
+                            'reduced_test_cases_ratio': reduced_test_cases_ratio,
+                            "reduced_mutant_ratio": reduced_mutant_ratio,
+                            'ftop1': sum_up_evaluation["top1"],
+                            'ftop3': sum_up_evaluation["top3"],
+                            'ftop5': sum_up_evaluation["top5"],
+                            'ftop10': sum_up_evaluation["top10"],
+                            'MAP': sum_up_evaluation["MAR"],
+                            'MFR': sum_up_evaluation["MFR"],
+                            'MTP': result["MTP"],
+                        }
+                        temp_df = pd.DataFrame([csv_row])
+                        all_results = pd.concat(
+                            [all_results, temp_df], ignore_index=True)
+
+    # Convert pd to excel and calculate score for each row
+    excel_file_name = 'evaluation_results.xlsx'
+    with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+        for formula in formulas:
+            formula_df = all_results[all_results['function']
+                                     == Formula.get_formula_name(formula)]
+            ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
+                formula_df['ftop1'].max() - formula_df['ftop1'].min())
+            map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
+                formula_df['MAP'].max() - formula_df['MAP'].min())
+            mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
+                formula_df['MFR'].max() - formula_df['MFR'].min())
+            weights = {'ftop1': 1, 'MAP': -1, 'MFR': -1}
+            formula_df['score'] = weights['ftop1'] * ftop1_normalized + \
+                weights['MAP'] * map_normalized + \
+                weights['MFR'] * mfr_normalized
+            top_five_indices = formula_df.nsmallest(5, 'score').index
+            formula_df.to_excel(
+                writer, sheet_name=Formula.get_formula_name(formula), index=False)
+        writer.save()
