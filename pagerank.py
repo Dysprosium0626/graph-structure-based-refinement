@@ -110,7 +110,7 @@ if __name__ == '__main__':
         mutation = data['mutation']
         ftest = data['ftest']
         rtest = data['rtest']
-        print(project_name)
+        # print(project_name)
         len_methods = len(data['methods'])
         len_lines = len(data['lines'])
         len_mutation = len(data['mutation'])

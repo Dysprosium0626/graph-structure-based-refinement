@@ -11,10 +11,18 @@ random.seed(0)
 # 创建命令行参数解析器
 parser = argparse.ArgumentParser(
     description='Reduce statements and test cases.')
-parser.add_argument('reduced_statements_ratio', type=float,
-                    help='Ratio for reducing statements (e.g. 0.7 for 70%)')
+parser.add_argument('selected_statements_ratio', type=float,
+                    help='Ratio for selecting statements to generate mutant (e.g. 0.7 for 70%, \
+                            means that we should select 70% most suspected statement to generate mutant, \
+                            while the 30% \less suspected ones should generate less mutant)')
 parser.add_argument('reduced_test_cases_ratio', type=float,
-                    help='Ratio for reducing passed test cases (e.g. 0.7 for 70%)')
+                    help='Ratio for reducing passed test cases (e.g. 0.7 for 70%, \
+                        means that we should reserve 70% passed tested cases with higher contribution, \
+                            while just throw away the 30% \less contributed ones.)')
+parser.add_argument('reduced_mutant_ratio', type=float,
+                    help='Radio for selected statements to generate mutant (e.g. 0.7 for 70%, \
+                        means that for selected less suspected statement, we should reserve 70% mutant for them \
+                            while reduce 30% mutant)')
 args = parser.parse_args()
 
 
@@ -37,12 +45,12 @@ def reduce_passed_test_cases(data, passed_test_cases_weights, percentage: float)
     for passed_test_case in data:
         if passed_test_case in top_n_indices_heap:
             passed_test_cases_reduced.append(passed_test_case)
-    print("previous rtest case:", data)
-    print("reduced rtest case:", passed_test_cases_reduced)
+    # print("previous rtest case:", data)
+    # print("reduced rtest case:", passed_test_cases_reduced)
     return passed_test_cases_reduced
 
 
-def reduce_statements(lines, statement_weights, percentage: float):
+def reduce_statements(lines, statement_weights, percentage: float) -> list:
     """
     Get the list of statement after reduction
     """
@@ -60,8 +68,8 @@ def reduce_statements(lines, statement_weights, percentage: float):
     for line in lines:
         if line in top_n_indices_heap:
             statements_reduced.append(line)
-    print("previous statements:", lines)
-    print("reduced statements", statements_reduced)
+    # print("previous statements:", lines)
+    # print("reduced statements", statements_reduced)
     return statements_reduced
 
 
@@ -91,13 +99,13 @@ def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mut
             else:
                 mutant2ftest_reduced[mutant].append(ftest)
 
-    print("previous mutant2line", mutant2line)
-    print("reduced mutant2line", mutant2line_reduced)
-    print("previous mutant2rtest", mutant2rtest)
-    print("reduced mutant2rtest", mutant2rtest_reduced)
-    print("reduced mutant2ftest", mutant2ftest_reduced)
-    print("reduced mutant_list", mutant_list)
-    return mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list
+    # print("previous mutant2line", mutant2line)
+    # print("reduced mutant2line", mutant2line_reduced)
+    # print("previous mutant2rtest", mutant2rtest)
+    # print("reduced mutant2rtest", mutant2rtest_reduced)
+    # print("reduced mutant2ftest", mutant2ftest_reduced)
+    # print("reduced mutant_list", mutant_list)
+    return mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list,
 
 
 def CalculateSuspiciousnessByMBFL(formula_type, line_suspicion):
@@ -195,6 +203,8 @@ if __name__ == "__main__":
             lines2rtest = data['edge10']
             lines2ftest = data['edge']
 
+            original_MTP = len_mutation * (len_ftest + len_rtest)
+
             with open(f'./data/page_rank/difference/{dataset_name}/{project_name}.json', 'r') as diff_file:
                 difference = json.load(diff_file)
                 logging.info("Load difference from JSON file")
@@ -213,12 +223,14 @@ if __name__ == "__main__":
                 # Reduce statements with low suspiciousness and passed test case with low contribution
                 # These two kinds of data should be reduced based on pre-computed result
                 statements_reduced = reduce_statements(
-                    lines.values(), difference, args.reduced_statements_ratio)
+                    lines.values(), difference, args.selected_statements_ratio)
                 passed_test_cases_reduced = reduce_passed_test_cases(
                     rtest.values(), passed_test_cases, args.reduced_test_cases_ratio)
 
                 mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list = refactor_data(
-                    statements_reduced, passed_test_cases_reduced, data["edge12"], data["edge13"], data["edge14"])
+                    statements_reduced, passed_test_cases_reduced, data["edge12"], data["edge13"], data["edge14"], args.reduced_mutant_ratio)
+                current_MTP = len(mutant_list) * \
+                    (len_ftest + len(passed_test_cases_reduced))
                 for formula in formulas:
                     line_suspicion, mutant_suspicion = MBFL(mutants2lines=mutant2line_reduced, mutants_list=mutant_list,
                                                             line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
@@ -228,11 +240,13 @@ if __name__ == "__main__":
                     result = {
                         "proj": project_name,
                         "formula": Formula.get_formula_name(formula),
-                        # "method suspicion": method_suspicion,
+                        "num_of_mutants": len(mutant_list),
+                        "num_of_test_cases": len_ftest + len(passed_test_cases_reduced),
+                        "original_MTP": original_MTP,
+                        "current_MTP": current_MTP,
                         "line suspicion": line_suspicion,
                         "mutant suspicion": mutant_suspicion
                     }
-                    print(result)
+                    # print(result)
                     dictionary_to_json(
-                        result, f"./data/mbfl/{dataset_name}/{args.reduced_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
-                    exit(0)
+                        result, f"./data/mbfl/{dataset_name}/{args.selected_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{args.reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
