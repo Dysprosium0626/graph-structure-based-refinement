@@ -10,7 +10,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import PatternFill
 
-from util import Formula
+from util import Formula, dictionary_to_json
 
 
 import sys
@@ -90,71 +90,8 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
     return result
 
 
-def evaluate_SBFL():
-    all_results = pd.DataFrame()
-
-    dataset = ['Lang']
-    formulas = [formula for _,
-                formula in Formula.__members__.items()]
-    for dataset_name in dataset:
-        with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
-            structural_data = json.load(rf)
-        for selected_statements_ratio in selected_statements_ratios:
-            for reduced_test_cases_ratio in reduced_test_cases_ratios:
-                for reduced_mutant_ratio in reduced_mutant_ratios:
-                    for formula in formulas:
-                        sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0}
-                        result = {"top1": 0, "top3": 0, "top5": 0,
-                                  "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
-                        for data in structural_data:
-                            project_name = data['proj']
-                            fault = data['ans']
-                            methods = data['methods']
-                            lines = data['lines']
-                            method2lines = data['edge2']
-                            directory_path = f'./data/mbfl/{dataset_name}/{selected_statements_ratio:.1f}/{reduced_test_cases_ratio:.1f}/{reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}'
-                            result = get_top_suspicious_lines_from_all_files(
-                                directory_path, project_name, fault, method2lines)
-                            sum_up_evaluation["top1"] += result["top1"]
-                            sum_up_evaluation["top3"] += result["top3"]
-                            sum_up_evaluation["top5"] += result["top5"]
-                            sum_up_evaluation["top10"] += result["top10"]
-                            sum_up_evaluation["MFR"] += result["FR"]
-                            sum_up_evaluation["MAR"] += result["AR"]
-                            sum_up_evaluation["fault_count"] += 1
-                        sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
-                            sum_up_evaluation["fault_count"]
-                        sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
-                            sum_up_evaluation["fault_count"]
-                        csv_row = {
-                            'function': sum_up_evaluation["formula"],
-                            'type': 'worst',
-                            'selected_statements_ratio': selected_statements_ratio,
-                            'reduced_test_cases_ratio': reduced_test_cases_ratio,
-                            "reduced_mutant_ratio": reduced_mutant_ratio,
-                            'ftop1': sum_up_evaluation["top1"],
-                            'ftop3': sum_up_evaluation["top3"],
-                            'ftop5': sum_up_evaluation["top5"],
-                            'ftop10': sum_up_evaluation["top10"],
-                            'MAP': sum_up_evaluation["MAR"],
-                            'MFR': sum_up_evaluation["MFR"],
-                            'MTP': result["MTP"],
-                        }
-                        temp_df = pd.DataFrame([csv_row])
-                        all_results = pd.concat(
-                            [all_results, temp_df], ignore_index=True)
-    excel_file_name = 'evaluation_results.xlsx'
-    with pd.ExcelWriter(excel_file_name) as writer:
-        for formula in formulas:
-            formula_df = all_results[all_results['function']
-                                     == Formula.get_formula_name(formula)]
-            formula_df.to_excel(
-                writer, sheet_name=Formula.get_formula_name(formula), index=False)
-
-
-def evaluate_contribution():
-    pass
+def save_selected_results(selected_statements_ratio, reduced_test_cases_ratio, reduced_mutant_ratio):
+    return (selected_statements_ratio, reduced_test_cases_ratio, reduced_mutant_ratio) == (0.2, 1, 1)
 
 
 if __name__ == "__main__":
@@ -174,7 +111,7 @@ if __name__ == "__main__":
                 for reduced_mutant_ratio in reduced_mutant_ratios:
                     for formula in formulas:
                         sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0}
+                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0, "results": {}}
                         result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
                                   "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
                         for data in structural_data:
@@ -193,10 +130,14 @@ if __name__ == "__main__":
                             sum_up_evaluation["MFR"] += result["FR"]
                             sum_up_evaluation["MAR"] += result["AR"]
                             sum_up_evaluation["fault_count"] += 1
+                            sum_up_evaluation["results"][project_name] = result
                         sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
                             sum_up_evaluation["fault_count"]
                         sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
                             sum_up_evaluation["fault_count"]
+                        if save_selected_results(selected_statements_ratio, reduced_test_cases_ratio, reduced_mutant_ratio):
+                            dictionary_to_json(
+                                sum_up_evaluation, f"./data/baseline/gbsr/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
                         csv_row = {
                             'function': sum_up_evaluation["formula"],
                             'type': 'worst',
