@@ -76,8 +76,10 @@ def SBFL_with_contribution(data, formula):
             line_set[line]['ep']['case_number'])
         line_suspicion[line]['stats']['np'] = len(
             line_set[line]['np']['case_number'])
-        line_suspicion[line]['test_cases']['passed_test_cases'] = list(line_set[line]['ep']['case_number'])
-        line_suspicion[line]['test_cases']['failed_test_cases'] = list(line_set[line]['ef']['case_number'])
+        line_suspicion[line]['test_cases']['passed_test_cases'] = list(
+            line_set[line]['ep']['case_number'])
+        line_suspicion[line]['test_cases']['failed_test_cases'] = list(
+            line_set[line]['ef']['case_number'])
 
     for method in data['methods'].values():
         method_suspicion[method]['stats']['ef'] = len(

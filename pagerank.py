@@ -4,6 +4,8 @@ import pickle
 import numpy as np
 import logging
 
+from util import Formula
+
 logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
 np.set_printoptions(suppress=True)
 
@@ -99,79 +101,82 @@ def page_rank_results_to_string(test_case_results, lengths, prefix=""):
 
 
 if __name__ == '__main__':
-    dataset = "Lang"
-    with open(f'pkl_data/{dataset}.json', 'r') as rf:
-        datas = json.load(rf)
-        logging.info("Load relationship from JSON file")
-    for data in datas:
-        project_name = data['proj']
-        methods = data['methods']
-        lines = data['lines']
-        mutation = data['mutation']
-        ftest = data['ftest']
-        rtest = data['rtest']
-        # print(project_name)
-        len_methods = len(data['methods'])
-        len_lines = len(data['lines'])
-        len_mutation = len(data['mutation'])
-        len_ftest = len(data['ftest'])
-        len_rtest = len(data['rtest'])
+    dataset = ['Lang']
+    formulas = formula_list = [formula for _,
+                               formula in Formula.__members__.items()]
+    for dataset_name in dataset:
+        with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
+            structural_data = json.load(rf)
+            logging.info("Load relationship from JSON file")
+        for data in structural_data:
+            project_name = data['proj']
+            methods = data['methods']
+            lines = data['lines']
+            mutation = data['mutation']
+            ftest = data['ftest']
+            rtest = data['rtest']
+            # print(project_name)
+            len_methods = len(data['methods'])
+            len_lines = len(data['lines'])
+            len_mutation = len(data['mutation'])
+            len_ftest = len(data['ftest'])
+            len_rtest = len(data['rtest'])
+            for formula in formulas:
+                passed_test_cases_filepath = f'./data/graph/passed_test_cases/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}_matrix.pkl'
+                failed_test_cases_filepath = f'./data/graph/failed_test_cases/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}_matrix.pkl'
+                passed_test_cases_matrix_after_page_rank = page_rank(
+                    passed_test_cases_filepath)
+                failed_test_cases_matrix_after_page_rank = page_rank(
+                    failed_test_cases_filepath)
+                # print(passed_test_cases_matrix_after_page_rank.round(6))
+                # print(failed_test_cases_matrix_after_page_rank.round(6))
+                # Format lengths for output
+                lengths = (len(data['methods']), len(data['lines']),
+                           len(data['rtest']), len(data['ftest']))
 
-        passed_test_cases_filepath = f'./data/graph/passed_test_cases/{dataset}/{project_name}_matrix.pkl'
-        failed_test_cases_filepath = f'./data/graph/failed_test_cases/{dataset}/{project_name}_matrix.pkl'
-        passed_test_cases_matrix_after_page_rank = page_rank(
-            passed_test_cases_filepath)
-        failed_test_cases_matrix_after_page_rank = page_rank(
-            failed_test_cases_filepath)
-        # print(passed_test_cases_matrix_after_page_rank.round(6))
-        # print(failed_test_cases_matrix_after_page_rank.round(6))
-        # Format lengths for output
-        lengths = (len(data['methods']), len(data['lines']),
-                   len(data['rtest']), len(data['ftest']))
+                # Prepare result strings
+                passed_results_str = page_rank_results_to_string(
+                    passed_test_cases_matrix_after_page_rank, lengths, prefix="passed_test_cases")
+                failed_results_str = page_rank_results_to_string(
+                    failed_test_cases_matrix_after_page_rank, lengths, prefix="failed_test_cases")
+                difference_results_str = page_rank_results_to_string(failed_test_cases_matrix_after_page_rank[0:len(data['methods']) + len(
+                    data['lines'])] - passed_test_cases_matrix_after_page_rank[0:len(data['methods']) + len(data['lines'])], lengths, prefix="failed_passed_diff")
 
-        # Prepare result strings
-        passed_results_str = page_rank_results_to_string(
-            passed_test_cases_matrix_after_page_rank, lengths, prefix="passed_test_cases")
-        failed_results_str = page_rank_results_to_string(
-            failed_test_cases_matrix_after_page_rank, lengths, prefix="failed_test_cases")
-        difference_results_str = page_rank_results_to_string(failed_test_cases_matrix_after_page_rank[0:len(data['methods']) + len(
-            data['lines'])] - passed_test_cases_matrix_after_page_rank[0:len(data['methods']) + len(data['lines'])], lengths, prefix="failed_passed_diff")
+                passed_test_cases_dir = os.path.join(
+                    "data", 'page_rank', "passed_test_cases", dataset_name, Formula.get_formula_name(formula))
+                failed_test_cases_dir = os.path.join(
+                    "data", 'page_rank', "failed_test_cases", dataset_name, Formula.get_formula_name(formula))
+                difference_dir = os.path.join(
+                    "data", 'page_rank', "difference", dataset_name, Formula.get_formula_name(formula))
 
-        passed_test_cases_dir = os.path.join(
-            "data", 'page_rank', "passed_test_cases", dataset)
-        failed_test_cases_dir = os.path.join(
-            "data", 'page_rank', "failed_test_cases", dataset)
-        difference_dir = os.path.join(
-            "data", 'page_rank', "difference", dataset)
+                os.makedirs(passed_test_cases_dir, exist_ok=True)
+                os.makedirs(failed_test_cases_dir, exist_ok=True)
+                os.makedirs(difference_dir, exist_ok=True)
 
-        os.makedirs(passed_test_cases_dir, exist_ok=True)
-        os.makedirs(failed_test_cases_dir, exist_ok=True)
-        os.makedirs(difference_dir, exist_ok=True)
+                passed_test_cases_page_rank_result = os.path.join(
+                    passed_test_cases_dir, f'{project_name}.json')
+                failed_test_cases_page_rank_result = os.path.join(
+                    failed_test_cases_dir, f'{project_name}.json')
+                difference_page_rank_result = os.path.join(
+                    difference_dir, f'{project_name}.json')
 
-        passed_test_cases_page_rank_result = os.path.join(
-            passed_test_cases_dir, f'{project_name}.json')
-        failed_test_cases_page_rank_result = os.path.join(
-            failed_test_cases_dir, f'{project_name}.json')
-        difference_page_rank_result = os.path.join(
-            difference_dir, f'{project_name}.json')
+                if not os.path.isfile(passed_test_cases_page_rank_result):
+                    with open(passed_test_cases_page_rank_result, 'w') as json_file:
+                        json.dump(passed_results_str, json_file, indent=4)
+                else:
+                    logging.info(
+                        f"File {passed_test_cases_page_rank_result} already exists. Skipping...")
 
-        if not os.path.isfile(passed_test_cases_page_rank_result):
-            with open(passed_test_cases_page_rank_result, 'w') as json_file:
-                json.dump(passed_results_str, json_file, indent=4)
-        else:
-            logging.info(
-                f"File {passed_test_cases_page_rank_result} already exists. Skipping...")
+                if not os.path.isfile(failed_test_cases_page_rank_result):
+                    with open(failed_test_cases_page_rank_result, 'w') as json_file:
+                        json.dump(failed_results_str, json_file, indent=4)
+                else:
+                    logging.info(
+                        f"File {failed_test_cases_page_rank_result} already exists. Skipping...")
 
-        if not os.path.isfile(failed_test_cases_page_rank_result):
-            with open(failed_test_cases_page_rank_result, 'w') as json_file:
-                json.dump(failed_results_str, json_file, indent=4)
-        else:
-            logging.info(
-                f"File {failed_test_cases_page_rank_result} already exists. Skipping...")
-
-        if not os.path.isfile(difference_page_rank_result):
-            with open(difference_page_rank_result, 'w') as json_file:
-                json.dump(difference_results_str, json_file, indent=4)
-        else:
-            logging.info(
-                f"File {difference_page_rank_result} already exists. Skipping...")
+                if not os.path.isfile(difference_page_rank_result):
+                    with open(difference_page_rank_result, 'w') as json_file:
+                        json.dump(difference_results_str, json_file, indent=4)
+                else:
+                    logging.info(
+                        f"File {difference_page_rank_result} already exists. Skipping...")

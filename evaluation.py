@@ -28,13 +28,17 @@ def get_top_suspicious_lines(json_data):
     )
 
     # 然后，为具有相同怀疑度的行分配相同的排名
-    current_rank = 1
-    previous_suspicion = None
-    for index, (line, suspicion) in enumerate(sorted_lines):
-        if suspicion != previous_suspicion:
-            current_rank = index + 1
-            previous_suspicion = suspicion
-        sorted_lines[index] = (line, suspicion, current_rank)
+    current_rank = len(sorted_lines)
+    next_suspicion = None
+    for index, (line, suspicion) in enumerate(reversed(sorted_lines)):
+        actual_index = len(sorted_lines) - 1 - index
+        # The last one, give it the rank
+        if index == current_rank - 1:
+            next_suspicion = suspicion
+        if suspicion != next_suspicion:
+            current_rank = actual_index + 1
+            next_suspicion = suspicion
+        sorted_lines[actual_index] = (line, suspicion, current_rank)
 
     # 提取行号和排名
     top_line_numbers = [(int(line[0]), line[2]) for line in sorted_lines]
@@ -49,7 +53,6 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
     with open(file_path, 'r') as f:
         json_data = json.load(f)
     top_lines = get_top_suspicious_lines(json_data["line suspicion"])
-
     # 处理每一行和方法
     for [method, line] in method2line:
         if method in fault:
@@ -91,7 +94,10 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
 
 
 def save_selected_results(selected_statements_ratio, reduced_test_cases_ratio, reduced_mutant_ratio):
-    return (selected_statements_ratio, reduced_test_cases_ratio, reduced_mutant_ratio) == (0.2, 1, 1)
+    '''
+    Save the selected results with given ratios for plotting
+    '''
+    return selected_statements_ratio == 0.2 and reduced_test_cases_ratio == 0.6 and reduced_mutant_ratio == 0.2
 
 
 if __name__ == "__main__":
@@ -109,9 +115,14 @@ if __name__ == "__main__":
         for selected_statements_ratio in selected_statements_ratios:
             for reduced_test_cases_ratio in reduced_test_cases_ratios:
                 for reduced_mutant_ratio in reduced_mutant_ratios:
+                    selected_statements_ratio = round(
+                        selected_statements_ratio, 1)
+                    reduced_test_cases_ratio = round(
+                        reduced_test_cases_ratio, 1)
+                    reduced_mutant_ratio = round(reduced_mutant_ratio, 1)
                     for formula in formulas:
                         sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "fault_count": 0, "results": {}}
+                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "results": {}}
                         result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
                                   "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
                         for data in structural_data:
@@ -129,6 +140,7 @@ if __name__ == "__main__":
                             sum_up_evaluation["top10"] += result["top10"]
                             sum_up_evaluation["MFR"] += result["FR"]
                             sum_up_evaluation["MAR"] += result["AR"]
+                            sum_up_evaluation["MTP"] += result["MTP"]
                             sum_up_evaluation["fault_count"] += 1
                             sum_up_evaluation["results"][project_name] = result
                         sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
@@ -150,7 +162,7 @@ if __name__ == "__main__":
                             'ftop10': sum_up_evaluation["top10"],
                             'MAP': sum_up_evaluation["MAR"],
                             'MFR': sum_up_evaluation["MFR"],
-                            'MTP': result["MTP"],
+                            'MTP': sum_up_evaluation["MTP"],
                         }
                         temp_df = pd.DataFrame([csv_row])
                         all_results = pd.concat(
@@ -169,7 +181,7 @@ if __name__ == "__main__":
             mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
                 formula_df['MFR'].max() - formula_df['MFR'].min())
             weights = {'ftop1': 1, 'MAP': -1, 'MFR': -1}
-            formula_df['score'] = weights['ftop1'] * ftop1_normalized + \
+            formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
                 weights['MAP'] * map_normalized + \
                 weights['MFR'] * mfr_normalized
             top_five_indices = formula_df.nsmallest(5, 'score').index

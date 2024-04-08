@@ -31,14 +31,14 @@ if __name__ == "__main__":
                 SBFL_AR_values = []
                 for project_name, stat in results["results"].items():
                     SBFL_AR_values.append(stat["AR"])
-            methods = ['GBSR', 'MBFL', 'SBFL']
+            methods = ['SBFL', 'MBFL', 'GBSR']
             # 创建小提琴图
             sns.violinplot(
-                data=[GBSR_AR_values, MBFL_AR_values, SBFL_AR_values])
+                data=[SBFL_AR_values, MBFL_AR_values, GBSR_AR_values])
 
             # 设置每个子图的标题
             plt.xticks(ticks=np.arange(len(methods)), labels=methods)
-            
+
             plt.title(Formula.get_formula_name(formula))
             plt.xlabel('Method')
             plt.ylabel('AR')
@@ -48,3 +48,5 @@ if __name__ == "__main__":
 
         # 显示图形
         plt.show()
+
+

@@ -73,15 +73,15 @@ def reduce_statements(lines, statement_weights, percentage: float) -> list:
     return statements_reduced
 
 
-def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mutant2rtest, mutant2ftest, prob=0.7):
+def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mutant2rtest, mutant2ftest, prob):
     mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list = {}, {}, {}, []
     for [mutant, line] in mutant2line:
         if line in statements_reduced:
             mutant2line_reduced[mutant] = line
             mutant_list.append(mutant)
         else:
-            rand = random.randint(0, 100)
-            if rand > prob * 100:
+            rand = random.randint(0, 99)
+            if rand < prob * 100:
                 mutant2line_reduced[mutant] = line
                 mutant_list.append(mutant)
 
@@ -205,15 +205,16 @@ if __name__ == "__main__":
 
             original_MTP = len_mutation * (len_ftest + len_rtest)
 
-            with open(f'./data/page_rank/difference/{dataset_name}/{project_name}.json', 'r') as diff_file:
-                difference = json.load(diff_file)
-                logging.info("Load difference from JSON file")
-
-            with open(f'./data/page_rank/passed_test_cases/{dataset_name}/{project_name}.json', 'r') as passed_test_cases_file:
-                passed_test_cases = json.load(passed_test_cases_file)
-                logging.info("Load passed test case from JSON file")
-
             for formula in formulas:
+
+                with open(f'./data/page_rank/difference/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json', 'r') as diff_file:
+                    difference = json.load(diff_file)
+                    logging.info("Load difference from JSON file")
+
+                with open(f'./data/page_rank/passed_test_cases/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json', 'r') as passed_test_cases_file:
+                    passed_test_cases = json.load(passed_test_cases_file)
+                    logging.info("Load passed test case from JSON file")
+
                 with open(f'./data/sbfl/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json', 'r') as sbfl_file:
                     sbfl_result = json.load(sbfl_file)
                     logging.info("Load passed test case from JSON file")
