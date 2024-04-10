@@ -7,7 +7,7 @@ import logging
 
 def dictionary_to_json(dictionary: dict, file_path: str):
     if os.path.isfile(file_path):
-        print(f"File {file_path} already exists. Skipping...")
+        # print(f"File {file_path} already exists. Skipping...")
         return
     directory = os.path.dirname(file_path)
     if not os.path.exists(directory):
@@ -185,6 +185,71 @@ def Dstar(line_suspicion, type: FaultLocalization, star_value=2):
             line_suspicion[line]['suspicion'] = math.pow(
                 kf, star_value) / ((kp + nf)) if kp + nf > 0 else 0
         return line_suspicion
+
+
+def CalculateSuspiciousnessByMBFL(formula_type, line_suspicion):
+    if formula_type == Formula.GP13:
+        return GP13(line_suspicion, FaultLocalization.MBFL)
+    elif formula_type == Formula.OCHIAI:
+        return Ochiai(line_suspicion, FaultLocalization.MBFL)
+    elif formula_type == Formula.JACCARD:
+        return Jaccard(line_suspicion, FaultLocalization.MBFL)
+    elif formula_type == Formula.OP2:
+        return OP2(line_suspicion, FaultLocalization.MBFL)
+    elif formula_type == Formula.TARANTULA:
+        return Tarantula(line_suspicion, FaultLocalization.MBFL)
+    elif formula_type == Formula.DSTAR:
+        return Dstar(line_suspicion, FaultLocalization.MBFL)
+    else:
+        raise ValueError("Unsupported formula type")
+
+
+def MBFL(mutants2lines, mutants_list, line_list, original_line_test_case_data, mutants2passed_test_cases, mutants2failed_test_cases, formula):
+
+    line_suspicion = {number_index: {"mutants": [], "suspicion": 0}
+                      for number_index in line_list}
+    mutant_suspicion = {number_index: {"stats": {'akp': 0, 'anp': 0, 'akf': 0, 'anf': 0}, "suspicion": 0}
+                        for number_index in mutants_list}
+    mutant_set = {number_index: {"killed": set(), "non-killed": set(), "passed": set(), "failed": set()}
+                  for number_index in mutants_list}
+
+    for mutant, passed_test_cases in mutants2passed_test_cases.items():
+        line = mutants2lines[mutant]
+        for passed_test_case in passed_test_cases:
+            mutant_set[mutant]["killed"].add(passed_test_case)
+        mutant_set[mutant]["passed"] = set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"])
+        mutant_set[mutant]["non-killed"] = set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"]).difference(mutant_set[mutant]["killed"])
+
+    for mutant, failed_test_cases in mutants2failed_test_cases.items():
+        line = mutants2lines[mutant]
+        for failed_test_case in failed_test_cases:
+            mutant_set[mutant]["failed"].add(failed_test_case)
+            mutant_set[mutant]["killed"].add(failed_test_case)
+        mutant_set[mutant]["failed"] = set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"])
+        mutant_set[mutant]["non-killed"].union(set(
+            original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"]).difference(mutant_set[mutant]["killed"]))
+
+    for index, test_cases_sets in mutant_set.items():
+        mutant_suspicion[index]["stats"]["akp"] = len(
+            test_cases_sets["killed"].intersection(test_cases_sets["passed"]))
+        mutant_suspicion[index]["stats"]["anp"] = len(
+            test_cases_sets["non-killed"].intersection(test_cases_sets["passed"]))
+        mutant_suspicion[index]["stats"]["akf"] = len(
+            test_cases_sets["killed"].intersection(test_cases_sets["failed"]))
+        mutant_suspicion[index]["stats"]["anf"] = len(
+            test_cases_sets["non-killed"].intersection(test_cases_sets["failed"]))
+    mutant_suspicion = CalculateSuspiciousnessByMBFL(formula, mutant_suspicion)
+    # print("mutant set", mutant_set)
+    # print("mutant suspicion", mutant_suspicion)
+    for mutant in mutant_suspicion.keys():
+        line = mutants2lines[mutant]
+        line_suspicion[line]["mutants"].append(mutant)
+        if line_suspicion[line]["suspicion"] < mutant_suspicion[mutant]["suspicion"]:
+            line_suspicion[line]["suspicion"] = mutant_suspicion[mutant]["suspicion"]
+    return line_suspicion, mutant_suspicion
 
 
 if __name__ == "__main__":

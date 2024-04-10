@@ -50,6 +50,26 @@ def reduce_passed_test_cases(data, passed_test_cases_weights, percentage: float)
     return passed_test_cases_reduced
 
 
+def reduce_passed_test_cases_based_on_contribution(data, contribution_result, percentage: float) -> list:
+    """
+    Get the list of passed test cases after reduction based on contribution
+    """
+    num_of_rtest = len(data)
+    N = int(num_of_rtest * percentage)
+    heap = [(contribution_result[f"{i}"], i) for i in range(num_of_rtest)]
+
+    # Find the top N largest values using the heap
+    largest_values = heapq.nlargest(N, heap)
+    top_n_indices_heap = [i for _, i in largest_values]
+    passed_test_cases_reduced = []
+    for passed_test_case in data:
+        if passed_test_case in top_n_indices_heap:
+            passed_test_cases_reduced.append(passed_test_case)
+    # print("previous rtest case:", data)
+    # print("reduced rtest case:", passed_test_cases_reduced)
+    return passed_test_cases_reduced
+
+
 def reduce_statements(lines, statement_weights, percentage: float) -> list:
     """
     Get the list of statement after reduction
@@ -70,6 +90,22 @@ def reduce_statements(lines, statement_weights, percentage: float) -> list:
             statements_reduced.append(line)
     # print("previous statements:", lines)
     # print("reduced statements", statements_reduced)
+    return statements_reduced
+
+
+def reduce_statements_based_on_random(lines, percentage: float) -> list:
+    """
+    Get the list of statement after reduction
+    """
+    N = int(len(lines) * percentage)
+    lines = list(lines)
+    # Create a list of indices for all statements
+    # Randomly select N indices
+    random_indices = random.sample(lines, N)
+
+    # Get the statements corresponding to the randomly selected indices
+    statements_reduced = [lines[i] for i in random_indices]
+
     return statements_reduced
 
 
@@ -106,71 +142,6 @@ def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mut
     # print("reduced mutant2ftest", mutant2ftest_reduced)
     # print("reduced mutant_list", mutant_list)
     return mutant2line_reduced, mutant2rtest_reduced, mutant2ftest_reduced, mutant_list,
-
-
-def CalculateSuspiciousnessByMBFL(formula_type, line_suspicion):
-    if formula_type == Formula.GP13:
-        return GP13(line_suspicion, FaultLocalization.MBFL)
-    elif formula_type == Formula.OCHIAI:
-        return Ochiai(line_suspicion, FaultLocalization.MBFL)
-    elif formula_type == Formula.JACCARD:
-        return Jaccard(line_suspicion, FaultLocalization.MBFL)
-    elif formula_type == Formula.OP2:
-        return OP2(line_suspicion, FaultLocalization.MBFL)
-    elif formula_type == Formula.TARANTULA:
-        return Tarantula(line_suspicion, FaultLocalization.MBFL)
-    elif formula_type == Formula.DSTAR:
-        return Dstar(line_suspicion, FaultLocalization.MBFL)
-    else:
-        raise ValueError("Unsupported formula type")
-
-
-def MBFL(mutants2lines, mutants_list, line_list, original_line_test_case_data, mutants2passed_test_cases, mutants2failed_test_cases, formula):
-
-    line_suspicion = {number_index: {"mutants": [], "suspicion": 0}
-                      for number_index in line_list}
-    mutant_suspicion = {number_index: {"stats": {'akp': 0, 'anp': 0, 'akf': 0, 'anf': 0}, "suspicion": 0}
-                        for number_index in mutants_list}
-    mutant_set = {number_index: {"killed": set(), "non-killed": set(), "passed": set(), "failed": set()}
-                  for number_index in mutants_list}
-
-    for mutant, passed_test_cases in mutants2passed_test_cases.items():
-        line = mutants2lines[mutant]
-        for passed_test_case in passed_test_cases:
-            mutant_set[mutant]["killed"].add(passed_test_case)
-        mutant_set[mutant]["passed"] = set(
-            original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"])
-        mutant_set[mutant]["non-killed"] = set(
-            original_line_test_case_data[f"{line}"]["test_cases"]["passed_test_cases"]).difference(mutant_set[mutant]["killed"])
-
-    for mutant, failed_test_cases in mutants2failed_test_cases.items():
-        line = mutants2lines[mutant]
-        for failed_test_case in failed_test_cases:
-            mutant_set[mutant]["failed"].add(failed_test_case)
-            mutant_set[mutant]["killed"].add(failed_test_case)
-        mutant_set[mutant]["failed"] = set(
-            original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"])
-        mutant_set[mutant]["non-killed"].union(set(
-            original_line_test_case_data[f"{line}"]["test_cases"]["failed_test_cases"]).difference(mutant_set[mutant]["killed"]))
-
-    for index, test_cases_sets in mutant_set.items():
-        mutant_suspicion[index]["stats"]["akp"] = len(
-            test_cases_sets["killed"].intersection(test_cases_sets["passed"]))
-        mutant_suspicion[index]["stats"]["anp"] = len(
-            test_cases_sets["non-killed"].intersection(test_cases_sets["passed"]))
-        mutant_suspicion[index]["stats"]["akf"] = len(
-            test_cases_sets["killed"].intersection(test_cases_sets["failed"]))
-        mutant_suspicion[index]["stats"]["anf"] = len(
-            test_cases_sets["non-killed"].intersection(test_cases_sets["failed"]))
-    mutant_suspicion = CalculateSuspiciousnessByMBFL(formula, mutant_suspicion)
-    # print("mutant set", mutant_set)
-    # print("mutant suspicion", mutant_suspicion)
-    for mutant in mutant_suspicion.keys():
-        line = mutants2lines[mutant]
-        line_suspicion[line]["mutants"].append(mutant)
-        if line_suspicion[line]["suspicion"] < mutant_suspicion[mutant]["suspicion"]:
-            line_suspicion[line]["suspicion"] = mutant_suspicion[mutant]["suspicion"]
-    return line_suspicion, mutant_suspicion
 
 
 if __name__ == "__main__":
@@ -219,6 +190,11 @@ if __name__ == "__main__":
                     sbfl_result = json.load(sbfl_file)
                     logging.info("Load passed test case from JSON file")
 
+                with open(f'./data/contribution/{dataset_name}/{project_name}.json', 'r') as sbfl_file:
+                    contribution_result = json.load(sbfl_file)
+                    logging.info("Load passed test case from JSON file")
+
+                # GBSR reduction
                 # Reduce statements with low suspiciousness and passed test case with low contribution
                 # These two kinds of data should be reduced based on pre-computed result
                 statements_reduced = reduce_statements(
@@ -230,22 +206,78 @@ if __name__ == "__main__":
                     statements_reduced, passed_test_cases_reduced, data["edge12"], data["edge13"], data["edge14"], args.reduced_mutant_ratio)
                 current_MTP = len(mutant_list) * \
                     (len_ftest + len(passed_test_cases_reduced))
-                for formula in formulas:
-                    line_suspicion, mutant_suspicion = MBFL(mutants2lines=mutant2line_reduced, mutants_list=mutant_list,
-                                                            line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
-                                                            mutants2passed_test_cases=mutant2rtest_reduced,
-                                                            mutants2failed_test_cases=mutant2ftest_reduced,
-                                                            formula=formula)
-                    result = {
-                        "proj": project_name,
-                        "formula": Formula.get_formula_name(formula),
-                        "num_of_mutants": len(mutant_list),
-                        "num_of_test_cases": len_ftest + len(passed_test_cases_reduced),
-                        "original_MTP": original_MTP,
-                        "current_MTP": current_MTP,
-                        "line suspicion": line_suspicion,
-                        "mutant suspicion": mutant_suspicion
-                    }
-                    # print(result)
-                    dictionary_to_json(
-                        result, f"./data/mbfl/{dataset_name}/{args.selected_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{args.reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
+
+                line_suspicion, mutant_suspicion = MBFL(mutants2lines=mutant2line_reduced, mutants_list=mutant_list,
+                                                        line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
+                                                        mutants2passed_test_cases=mutant2rtest_reduced,
+                                                        mutants2failed_test_cases=mutant2ftest_reduced,
+                                                        formula=formula)
+                result = {
+                    "proj": project_name,
+                    "formula": Formula.get_formula_name(formula),
+                    "num_of_mutants": len(mutant_list),
+                    "num_of_test_cases": len_ftest + len(passed_test_cases_reduced),
+                    "original_MTP": original_MTP,
+                    "current_MTP": current_MTP,
+                    "line suspicion": line_suspicion,
+                    "mutant suspicion": mutant_suspicion
+                }
+                # print(result)
+                dictionary_to_json(
+                    result, f"./data/mbfl/{dataset_name}/{args.selected_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{args.reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
+
+                # Contribution based reduction
+                passed_test_cases_reduced_based_on_contribution = reduce_passed_test_cases_based_on_contribution(
+                    rtest.values(), contribution_result["rtest"], args.reduced_test_cases_ratio)
+
+                mutant2line_reduced_based_on_contribution, mutant2rtest_reduced_based_on_contribution, mutant2ftest_reduced_based_on_contribution, mutant_list_based_on_contribution = refactor_data(
+                    lines.values(), passed_test_cases_reduced_based_on_contribution, data["edge12"], data["edge13"], data["edge14"], args.reduced_mutant_ratio)
+                current_MTP = len(mutant_list_based_on_contribution) * \
+                    (len_ftest + len(passed_test_cases_reduced_based_on_contribution))
+
+                line_suspicion_based_on_contribution, mutant_suspicion_based_on_contribution = MBFL(mutants2lines=mutant2line_reduced_based_on_contribution, mutants_list=mutant_list_based_on_contribution,
+                                                                                                    line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
+                                                                                                    mutants2passed_test_cases=mutant2rtest_reduced_based_on_contribution,
+                                                                                                    mutants2failed_test_cases=mutant2ftest_reduced_based_on_contribution,
+                                                                                                    formula=formula)
+                result = {
+                    "proj": project_name,
+                    "formula": Formula.get_formula_name(formula),
+                    "num_of_mutants": len(mutant_list_based_on_contribution),
+                    "num_of_test_cases": len_ftest + len(passed_test_cases_reduced_based_on_contribution),
+                    "original_MTP": original_MTP,
+                    "current_MTP": current_MTP,
+                    "line suspicion": line_suspicion_based_on_contribution,
+                    "mutant suspicion": mutant_suspicion_based_on_contribution
+                }
+                # print(result)
+                dictionary_to_json(
+                    result, f"./data/baseline/cbtcr/{dataset_name}/{args.selected_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{args.reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
+
+                # Random statement reduction
+                statements_reduced_random = reduce_statements_based_on_random(
+                    lines.values(), args.selected_statements_ratio)
+
+                mutant2line_reduced_random, mutant2rtest_reduced_random, mutant2ftest_reduced_random, mutant_list_random = refactor_data(
+                    statements_reduced_random, rtest.values(), data["edge12"], data["edge13"], data["edge14"], args.reduced_mutant_ratio)
+                current_MTP = len(mutant_list) * \
+                    (len_ftest + len(rtest.values()))
+
+                line_suspicion_random, mutant_suspicion_random = MBFL(mutants2lines=mutant2line_reduced_random, mutants_list=mutant_list_random,
+                                                                      line_list=lines.values(), original_line_test_case_data=sbfl_result["line suspicion"],
+                                                                      mutants2passed_test_cases=mutant2rtest_reduced_random,
+                                                                      mutants2failed_test_cases=mutant2ftest_reduced_random,
+                                                                      formula=formula)
+                result = {
+                    "proj": project_name,
+                    "formula": Formula.get_formula_name(formula),
+                    "num_of_mutants": len(mutant_list_random),
+                    "num_of_test_cases": len_ftest + len(rtest.values()),
+                    "original_MTP": original_MTP,
+                    "current_MTP": current_MTP,
+                    "line suspicion": line_suspicion_random,
+                    "mutant suspicion": mutant_suspicion_random
+                }
+                # print(result)
+                dictionary_to_json(
+                    result, f"./data/baseline/random/{dataset_name}/{args.selected_statements_ratio:.1f}/{args.reduced_test_cases_ratio:.1f}/{args.reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}/{project_name}.json")
