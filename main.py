@@ -19,7 +19,7 @@ if __name__ == "__main__":
     ratios = np.arange(0, 1.2, 0.2)
 
     # Run mbfl.py with different combinations of parameters
-    total_iterations = len(ratios) ** 2
+    total_iterations = len(ratios) ** 3
     with tqdm(total=total_iterations, desc='Running mbfl.py', unit='iter') as pbar:
         for a in ratios:
             for b in ratios:

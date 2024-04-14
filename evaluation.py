@@ -106,11 +106,9 @@ def save_selected_results(selected_statements_ratio, reduced_test_cases_ratio, r
 
 
 if __name__ == "__main__":
-    gbsr_all_results = pd.DataFrame()
-    cbtcr_all_results = pd.DataFrame()
-    random_all_results = pd.DataFrame()
+    
 
-    dataset = ['Lang']
+    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
     formulas = [formula for _,
                 formula in Formula.__members__.items()]
     selected_statements_ratios = np.arange(0.2, 1.2, 0.2)
@@ -119,6 +117,7 @@ if __name__ == "__main__":
 
     # gbsr
     for dataset_name in dataset:
+        gbsr_all_results = pd.DataFrame()
         with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
             structural_data = json.load(rf)
         for selected_statements_ratio in selected_statements_ratios:
@@ -177,29 +176,30 @@ if __name__ == "__main__":
                         gbsr_all_results = pd.concat(
                             [gbsr_all_results, temp_df], ignore_index=True)
 
-    # Convert pd to excel and calculate score for each row
-    excel_file_name = 'evaluation_results.xlsx'
-    with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
-        for formula in formulas:
-            formula_df = gbsr_all_results[gbsr_all_results['function']
-                                          == Formula.get_formula_name(formula)]
-            ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
-                formula_df['ftop1'].max() - formula_df['ftop1'].min())
-            map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
-                formula_df['MAP'].max() - formula_df['MAP'].min())
-            mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
-                formula_df['MFR'].max() - formula_df['MFR'].min())
-            weights = {'ftop1': 1, 'MAP': -1, 'MFR': -1}
-            formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
-                weights['MAP'] * map_normalized + \
-                weights['MFR'] * mfr_normalized
-            top_five_indices = formula_df.nsmallest(5, 'score').index
-            formula_df.to_excel(
-                writer, sheet_name=Formula.get_formula_name(formula), index=False)
-        writer.save()
+        # Convert pd to excel and calculate score for each row
+        excel_file_name = f'{dataset_name}_evaluation_results.xlsx'
+        with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+            for formula in formulas:
+                formula_df = gbsr_all_results[gbsr_all_results['function']
+                                              == Formula.get_formula_name(formula)]
+                ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
+                    formula_df['ftop1'].max() - formula_df['ftop1'].min())
+                map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
+                    formula_df['MAP'].max() - formula_df['MAP'].min())
+                mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
+                    formula_df['MFR'].max() - formula_df['MFR'].min())
+                weights = {'ftop1': 1, 'MAP': 1, 'MFR': 1}
+                formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
+                    weights['MAP'] * map_normalized + \
+                    weights['MFR'] * mfr_normalized
+                top_five_indices = formula_df.nsmallest(5, 'score').index
+                formula_df.to_excel(
+                    writer, sheet_name=Formula.get_formula_name(formula), index=False)
+            writer.save()
 
     # contribution
     for dataset_name in dataset:
+        cbtcr_all_results = pd.DataFrame()
         with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
             structural_data = json.load(rf)
         for reduced_test_cases_ratio in reduced_test_cases_ratios:
@@ -253,29 +253,30 @@ if __name__ == "__main__":
                 cbtcr_all_results = pd.concat(
                     [cbtcr_all_results, temp_df], ignore_index=True)
 
-    # Convert pd to excel and calculate score for each row
-    excel_file_name = 'evaluation_results_cbtcr.xlsx'
-    with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
-        for formula in formulas:
-            formula_df = cbtcr_all_results[cbtcr_all_results['function']
-                                           == Formula.get_formula_name(formula)]
-            ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
-                formula_df['ftop1'].max() - formula_df['ftop1'].min())
-            map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
-                formula_df['MAP'].max() - formula_df['MAP'].min())
-            mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
-                formula_df['MFR'].max() - formula_df['MFR'].min())
-            weights = {'ftop1': 1, 'MAP': -1, 'MFR': -1}
-            formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
-                weights['MAP'] * map_normalized + \
-                weights['MFR'] * mfr_normalized
-            top_five_indices = formula_df.nsmallest(5, 'score').index
-            formula_df.to_excel(
-                writer, sheet_name=Formula.get_formula_name(formula), index=False)
-        writer.save()
+        # Convert pd to excel and calculate score for each row
+        excel_file_name = f'{dataset_name}_evaluation_results_cbtcr.xlsx'
+        with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+            for formula in formulas:
+                formula_df = cbtcr_all_results[cbtcr_all_results['function']
+                                               == Formula.get_formula_name(formula)]
+                ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
+                    formula_df['ftop1'].max() - formula_df['ftop1'].min())
+                map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
+                    formula_df['MAP'].max() - formula_df['MAP'].min())
+                mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
+                    formula_df['MFR'].max() - formula_df['MFR'].min())
+                weights = {'ftop1': 1, 'MAP': 1, 'MFR': 1}
+                formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
+                    weights['MAP'] * map_normalized + \
+                    weights['MFR'] * mfr_normalized
+                top_five_indices = formula_df.nsmallest(5, 'score').index
+                formula_df.to_excel(
+                    writer, sheet_name=Formula.get_formula_name(formula), index=False)
+            writer.save()
 
     # random
     for dataset_name in dataset:
+        random_all_results = pd.DataFrame()
         with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
             structural_data = json.load(rf)
         for selected_statements_ratio in selected_statements_ratios:
@@ -329,23 +330,23 @@ if __name__ == "__main__":
                 random_all_results = pd.concat(
                     [random_all_results, temp_df], ignore_index=True)
 
-    # Convert pd to excel and calculate score for each row
-    excel_file_name = 'evaluation_results_random.xlsx'
-    with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
-        for formula in formulas:
-            formula_df = random_all_results[random_all_results['function']
-                                            == Formula.get_formula_name(formula)]
-            ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
-                formula_df['ftop1'].max() - formula_df['ftop1'].min())
-            map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
-                formula_df['MAP'].max() - formula_df['MAP'].min())
-            mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
-                formula_df['MFR'].max() - formula_df['MFR'].min())
-            weights = {'ftop1': 1, 'MAP': -1, 'MFR': -1}
-            formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
-                weights['MAP'] * map_normalized + \
-                weights['MFR'] * mfr_normalized
-            top_five_indices = formula_df.nsmallest(5, 'score').index
-            formula_df.to_excel(
-                writer, sheet_name=Formula.get_formula_name(formula), index=False)
-        writer.save()
+        # Convert pd to excel and calculate score for each row
+        excel_file_name = f'{dataset_name}_evaluation_results_random.xlsx'
+        with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+            for formula in formulas:
+                formula_df = random_all_results[random_all_results['function']
+                                                == Formula.get_formula_name(formula)]
+                ftop1_normalized = (formula_df['ftop1'] - formula_df['ftop1'].min()) / (
+                    formula_df['ftop1'].max() - formula_df['ftop1'].min())
+                map_normalized = 1 - (formula_df['MAP'] - formula_df['MAP'].min()) / (
+                    formula_df['MAP'].max() - formula_df['MAP'].min())
+                mfr_normalized = 1 - (formula_df['MFR'] - formula_df['MFR'].min()) / (
+                    formula_df['MFR'].max() - formula_df['MFR'].min())
+                weights = {'ftop1': 1, 'MAP': 1, 'MFR': 1}
+                formula_df.loc[:, 'score'] = weights['ftop1'] * ftop1_normalized + \
+                    weights['MAP'] * map_normalized + \
+                    weights['MFR'] * mfr_normalized
+                top_five_indices = formula_df.nsmallest(5, 'score').index
+                formula_df.to_excel(
+                    writer, sheet_name=Formula.get_formula_name(formula), index=False)
+            writer.save()

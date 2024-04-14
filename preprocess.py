@@ -94,25 +94,28 @@ def SBFL_with_contribution(data, formula):
     line_SBFL_result = CalculateSuspiciousnessBySBFL(formula, line_suspicion)
     method_SBFL_result = CalculateSuspiciousnessBySBFL(
         formula, method_suspicion)
-    test_case_contribution = contribution(data, line_suspicion)
+    test_case_contribution = contribution(data, line_suspicion, data['lines'].values(
+    ), data['ftest'].values(), data['rtest'].values())
     return method_SBFL_result, line_SBFL_result, test_case_contribution
 
 
-def contribution(data, line_suspicion):
+def contribution(data, line_suspicion, line_list, ftest_list, rtest_list):
     test_case_contribution = {
         "ftest": {test_case_index: 0 for test_case_index in data["ftest"].values()},
         "rtest": {test_case_index: 0 for test_case_index in data["rtest"].values()},
     }
     for [line_index, failed_test_case_index] in data['edge']:
-        test_case_contribution["ftest"][failed_test_case_index] += line_suspicion[line_index]["suspicion"]
+        if line_index in line_list and failed_test_case_index in ftest_list:
+            test_case_contribution["ftest"][failed_test_case_index] += line_suspicion[line_index]["suspicion"]
     for [line_index, passed_test_case_index] in data['edge10']:
-        test_case_contribution["rtest"][passed_test_case_index] += line_suspicion[line_index]["suspicion"]
+        if line_index in line_list and passed_test_case_index in rtest_list:
+            test_case_contribution["rtest"][passed_test_case_index] += line_suspicion[line_index]["suspicion"]
     return test_case_contribution
 
 
 if __name__ == '__main__':
     # To support different dataset, just add the project name here
-    dataset = ['Lang']
+    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
     formulas = formula_list = [formula for _,
                                formula in Formula.__members__.items()]
     for dataset_name in dataset:

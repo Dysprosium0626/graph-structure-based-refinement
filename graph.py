@@ -167,7 +167,7 @@ def process_method_to_method_matrix(data: list, length: int, method_suspicion: d
 
 
 if __name__ == '__main__':
-    dataset = ['Lang']
+    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
     formulas = formula_list = [formula for _,
                                formula in Formula.__members__.items()]
     method2method_data = {}
@@ -210,11 +210,20 @@ if __name__ == '__main__':
             method2method = {}
             method2lines = data['edge2']
             mutation2lines = data['edge12']
-            lines2rtest = data['edge10']
-            lines2ftest = data['edge']
+            lines2rtest_original = data['edge10']
+            lines2ftest_original = data['edge']
             mutation2rtest = data['edge13']
             mutation2ftest = data['edge14']
             this_method2method_data = method2method_data[project_name]
+
+            lines2rtest, lines2ftest = [], []
+            for [line, rt] in lines2rtest_original:
+                if line in lines.values() and rt in rtest.values():
+                    lines2rtest.append([line, rt])
+            for [line, ft] in lines2ftest_original:
+                if line in lines.values() and ft in ftest.values():
+                    lines2ftest.append([line, ft])
+
             logging.info(f"Get edge information of {project_name}")
             for formula in formulas:
                 with open(f'data/sbfl/{dataset_name}/{Formula.get_formula_name(formula)}/{project_name}.json', 'r') as rf:

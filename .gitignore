@@ -4,3 +4,4 @@
 __pycache__
 pkl_data
 data
+*.xlsx

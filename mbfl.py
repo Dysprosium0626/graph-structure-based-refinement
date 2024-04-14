@@ -54,9 +54,9 @@ def reduce_passed_test_cases_based_on_contribution(data, contribution_result, pe
     """
     Get the list of passed test cases after reduction based on contribution
     """
-    num_of_rtest = len(data)
-    N = int(num_of_rtest * percentage)
-    heap = [(contribution_result[f"{i}"], i) for i in range(num_of_rtest)]
+    rtest = contribution_result.keys()
+    N = int(len(rtest) * percentage)
+    heap = [(contribution_result[i], int(i)) for i in rtest]
 
     # Find the top N largest values using the heap
     largest_values = heapq.nlargest(N, heap)
@@ -145,9 +145,9 @@ def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mut
 
 
 if __name__ == "__main__":
-    dataset = ['Lang']
-    formulas = formula_list = [formula for _,
-                               formula in Formula.__members__.items()]
+    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    formulas = [formula for _,
+                formula in Formula.__members__.items()]
 
     for dataset_name in dataset:
         with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
@@ -156,8 +156,6 @@ if __name__ == "__main__":
 
         for data in structural_data:
             project_name = data['proj']
-            # if project_name != "Lang7":
-            #     continue
             methods = data['methods']
             lines = data['lines']
             mutation = data['mutation']
