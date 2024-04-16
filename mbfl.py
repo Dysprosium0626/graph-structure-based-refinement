@@ -145,7 +145,8 @@ def refactor_data(statements_reduced, passed_test_case_reduced, mutant2line, mut
 
 
 if __name__ == "__main__":
-    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    # dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    dataset = ['Lang']
     formulas = [formula for _,
                 formula in Formula.__members__.items()]
 

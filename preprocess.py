@@ -115,7 +115,8 @@ def contribution(data, line_suspicion, line_list, ftest_list, rtest_list):
 
 if __name__ == '__main__':
     # To support different dataset, just add the project name here
-    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    # dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    dataset = ['Lang']
     formulas = formula_list = [formula for _,
                                formula in Formula.__members__.items()]
     for dataset_name in dataset:

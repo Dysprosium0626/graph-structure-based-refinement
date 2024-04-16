@@ -101,7 +101,8 @@ def page_rank_results_to_string(test_case_results, lengths, prefix=""):
 
 
 if __name__ == '__main__':
-    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    # dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    dataset = ['Lang']
     formulas = formula_list = [formula for _,
                                formula in Formula.__members__.items()]
     for dataset_name in dataset:

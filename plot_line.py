@@ -10,7 +10,7 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(3, 2, figsize=(12, 8))  # 假设你有6个公式，所以创建3行2列的子图
 
     # 打开Excel文件
-    excel_file = 'Chart_evaluation_results.xlsx'
+    excel_file = 'Lang_evaluation_results.xlsx'
 
     # 获取Excel文件中所有工作表的名称，每个工作表对应一个公式
     xls = pd.ExcelFile(excel_file)

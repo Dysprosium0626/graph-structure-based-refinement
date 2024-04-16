@@ -24,6 +24,9 @@ if __name__ == "__main__":
         for a in ratios:
             for b in ratios:
                 for c in ratios:
+                    a = round(a, 1)
+                    b = round(b, 1)
+                    c = round(c, 1)
                     run_script('mbfl.py', [str(a), str(b), str(c)])
                     pbar.update(1)
 

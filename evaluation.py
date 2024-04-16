@@ -98,17 +98,17 @@ def save_selected_results(selected_statements_ratio, reduced_test_cases_ratio, r
     Save the selected results with given ratios for plotting
     '''
     if method == 'gbsr':
-        return selected_statements_ratio == 0.2 and reduced_test_cases_ratio == 0.6 and reduced_mutant_ratio == 0.2
+        return selected_statements_ratio == 0.2 and reduced_test_cases_ratio == 0.8 and reduced_mutant_ratio == 0.8
     elif method == 'cbtcr':
-        return reduced_test_cases_ratio == 0.6 and reduced_mutant_ratio == 0.2
+        return reduced_test_cases_ratio == 0.8
     elif method == 'random':
-        return reduced_mutant_ratio == 0.2
+        return selected_statements_ratio == 0.2 and reduced_mutant_ratio == 0.8
 
 
 if __name__ == "__main__":
-    
 
-    dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    # dataset = ['Chart', 'Cli', 'JxPath', 'Lang', 'Math']
+    dataset = ['Lang']
     formulas = [formula for _,
                 formula in Formula.__members__.items()]
     selected_statements_ratios = np.arange(0.2, 1.2, 0.2)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                             methods = data['methods']
                             lines = data['lines']
                             method2lines = data['edge2']
-                            directory_path = f'./data/mbfl/{dataset_name}/{selected_statements_ratio:.1f}/{reduced_test_cases_ratio:.1f}/{reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}'
+                            directory_path = f"./data/mbfl/{dataset_name}/{selected_statements_ratio:.1f}/{reduced_test_cases_ratio:.1f}/{reduced_mutant_ratio:.1f}/{Formula.get_formula_name(formula)}"
                             result = get_top_suspicious_lines_from_all_files(
                                 directory_path, project_name, fault, method2lines)
                             sum_up_evaluation["top1"] += result["top1"]
@@ -216,7 +216,7 @@ if __name__ == "__main__":
                     methods = data['methods']
                     lines = data['lines']
                     method2lines = data['edge2']
-                    directory_path = f'./data/baseline/cbtcr/{dataset_name}/0.0/{reduced_test_cases_ratio:.1f}/0.0/{Formula.get_formula_name(formula)}'
+                    directory_path = f"./data/baseline/cbtcr/{dataset_name}/1.0/{reduced_test_cases_ratio:.1f}/1.0/{Formula.get_formula_name(formula)}"
                     result = get_top_suspicious_lines_from_all_files(
                         directory_path, project_name, fault, method2lines)
                     sum_up_evaluation["top1"] += result["top1"]
@@ -234,7 +234,7 @@ if __name__ == "__main__":
                     sum_up_evaluation["fault_count"]
                 if save_selected_results(0, reduced_test_cases_ratio, 0, method='cbtcr'):
                     dictionary_to_json(
-                        sum_up_evaluation, f"./data/baseline/gbsr/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
+                        sum_up_evaluation, f"./data/baseline/cbtcr/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
                 csv_row = {
                     'function': sum_up_evaluation["formula"],
                     'type': 'worst',
@@ -280,55 +280,58 @@ if __name__ == "__main__":
         with open(f'pkl_data/{dataset_name}.json', 'r') as rf:
             structural_data = json.load(rf)
         for selected_statements_ratio in selected_statements_ratios:
-            selected_statements_ratio = round(
-                selected_statements_ratio, 1)
-            for formula in formulas:
-                sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                     "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "results": {}}
-                result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
-                          "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
-                for data in structural_data:
-                    project_name = data['proj']
-                    fault = data['ans']
-                    methods = data['methods']
-                    lines = data['lines']
-                    method2lines = data['edge2']
-                    directory_path = f'./data/baseline/random/{dataset_name}/{selected_statements_ratio:.1f}/0.0/0.0/{Formula.get_formula_name(formula)}'
-                    result = get_top_suspicious_lines_from_all_files(
-                        directory_path, project_name, fault, method2lines)
-                    sum_up_evaluation["top1"] += result["top1"]
-                    sum_up_evaluation["top3"] += result["top3"]
-                    sum_up_evaluation["top5"] += result["top5"]
-                    sum_up_evaluation["top10"] += result["top10"]
-                    sum_up_evaluation["MFR"] += result["FR"]
-                    sum_up_evaluation["MAR"] += result["AR"]
-                    sum_up_evaluation["MTP"] += result["MTP"]
-                    sum_up_evaluation["fault_count"] += 1
-                    sum_up_evaluation["results"][project_name] = result
-                sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
-                    sum_up_evaluation["fault_count"]
-                sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
-                    sum_up_evaluation["fault_count"]
-                if save_selected_results(selected_statements_ratio, 0, 0, method='random'):
-                    dictionary_to_json(
-                        sum_up_evaluation, f"./data/baseline/random/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
-                csv_row = {
-                    'function': sum_up_evaluation["formula"],
-                    'type': 'worst',
-                    'selected_statements_ratio': selected_statements_ratio,
-                    'reduced_test_cases_ratio': reduced_test_cases_ratio,
-                    "reduced_mutant_ratio": reduced_mutant_ratio,
-                    'ftop1': sum_up_evaluation["top1"],
-                    'ftop3': sum_up_evaluation["top3"],
-                    'ftop5': sum_up_evaluation["top5"],
-                    'ftop10': sum_up_evaluation["top10"],
-                    'MAP': sum_up_evaluation["MAR"],
-                    'MFR': sum_up_evaluation["MFR"],
-                    'MTP': sum_up_evaluation["MTP"],
-                }
-                temp_df = pd.DataFrame([csv_row])
-                random_all_results = pd.concat(
-                    [random_all_results, temp_df], ignore_index=True)
+            for reduced_mutant_ratio in reduced_mutant_ratios:
+                selected_statements_ratio = round(
+                    selected_statements_ratio, 1)
+                reduced_mutant_ratio = round(
+                    reduced_mutant_ratio, 1)
+                for formula in formulas:
+                    sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
+                                        "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "results": {}}
+                    result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
+                            "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
+                    for data in structural_data:
+                        project_name = data['proj']
+                        fault = data['ans']
+                        methods = data['methods']
+                        lines = data['lines']
+                        method2lines = data['edge2']
+                        directory_path = f"./data/baseline/random/{dataset_name}/{selected_statements_ratio:.1f}/1.0/{reduced_mutant_ratio}/{Formula.get_formula_name(formula)}"
+                        result = get_top_suspicious_lines_from_all_files(
+                            directory_path, project_name, fault, method2lines)
+                        sum_up_evaluation["top1"] += result["top1"]
+                        sum_up_evaluation["top3"] += result["top3"]
+                        sum_up_evaluation["top5"] += result["top5"]
+                        sum_up_evaluation["top10"] += result["top10"]
+                        sum_up_evaluation["MFR"] += result["FR"]
+                        sum_up_evaluation["MAR"] += result["AR"]
+                        sum_up_evaluation["MTP"] += result["MTP"]
+                        sum_up_evaluation["fault_count"] += 1
+                        sum_up_evaluation["results"][project_name] = result
+                    sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
+                        sum_up_evaluation["fault_count"]
+                    sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
+                        sum_up_evaluation["fault_count"]
+                    if save_selected_results(selected_statements_ratio, 1.0, reduced_mutant_ratio, method='random'):
+                        dictionary_to_json(
+                            sum_up_evaluation, f"./data/baseline/random/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
+                    csv_row = {
+                        'function': sum_up_evaluation["formula"],
+                        'type': 'worst',
+                        'selected_statements_ratio': selected_statements_ratio,
+                        'reduced_test_cases_ratio': reduced_test_cases_ratio,
+                        "reduced_mutant_ratio": reduced_mutant_ratio,
+                        'ftop1': sum_up_evaluation["top1"],
+                        'ftop3': sum_up_evaluation["top3"],
+                        'ftop5': sum_up_evaluation["top5"],
+                        'ftop10': sum_up_evaluation["top10"],
+                        'MAP': sum_up_evaluation["MAR"],
+                        'MFR': sum_up_evaluation["MFR"],
+                        'MTP': sum_up_evaluation["MTP"],
+                    }
+                    temp_df = pd.DataFrame([csv_row])
+                    random_all_results = pd.concat(
+                        [random_all_results, temp_df], ignore_index=True)
 
         # Convert pd to excel and calculate score for each row
         excel_file_name = f'{dataset_name}_evaluation_results_random.xlsx'

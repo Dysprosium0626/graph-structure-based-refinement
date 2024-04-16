@@ -28,13 +28,17 @@ def get_top_suspicious_lines(json_data):
     )
 
     # 然后，为具有相同怀疑度的行分配相同的排名
-    current_rank = 1
-    previous_suspicion = None
-    for index, (line, suspicion) in enumerate(sorted_lines):
-        if suspicion != previous_suspicion:
-            current_rank = index + 1
-            previous_suspicion = suspicion
-        sorted_lines[index] = (line, suspicion, current_rank)
+    current_rank = len(sorted_lines)
+    next_suspicion = None
+    for index, (line, suspicion) in enumerate(reversed(sorted_lines)):
+        actual_index = len(sorted_lines) - 1 - index
+        # The last one, give it the rank
+        if index == current_rank - 1:
+            next_suspicion = suspicion
+        if suspicion != next_suspicion:
+            current_rank = actual_index + 1
+            next_suspicion = suspicion
+        sorted_lines[actual_index] = (line, suspicion, current_rank)
 
     # 提取行号和排名
     top_line_numbers = [(int(line[0]), line[2]) for line in sorted_lines]
@@ -107,6 +111,8 @@ if __name__ == "__main__":
                     "formula": Formula.get_formula_name(formula), "results": {}}
                 SBFL_sum_up_evaluation = {
                     "formula": Formula.get_formula_name(formula), "results": {}}
+                FTMES_sum_up_evaluation = {
+                    "formula": Formula.get_formula_name(formula), "results": {}}
                 for data in structural_data:
                     project_name = data['proj']
                     fault = data['ans']
@@ -120,14 +126,68 @@ if __name__ == "__main__":
                         MBFL_directory_path, project_name, fault, method2lines)
                     MBFL_sum_up_evaluation["results"][project_name] = result
 
+
                     # SBFL
                     SBFL_directory_path = f'./data/sbfl/{dataset_name}/{Formula.get_formula_name(formula)}'
                     result = get_top_suspicious_lines_from_all_files(
                         SBFL_directory_path, project_name, fault, method2lines)
                     SBFL_sum_up_evaluation["results"][project_name] = result
 
+                    # FTMES
+                    FTMES_directory_path = f'./data/baseline/ftmes/{dataset_name}/{Formula.get_formula_name(formula)}'
+                    result = get_top_suspicious_lines_from_all_files(
+                        FTMES_directory_path, project_name, fault, method2lines)
+                    FTMES_sum_up_evaluation["results"][project_name] = result
+
                 dictionary_to_json(
                     MBFL_sum_up_evaluation, f"./data/baseline/mbfl/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
 
                 dictionary_to_json(
                     SBFL_sum_up_evaluation, f"./data/baseline/sbfl/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
+
+                dictionary_to_json(
+                    FTMES_sum_up_evaluation, f"./data/baseline/ftmes/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
+
+    # Initialize a DataFrame to store the accumulated results
+    columns = ['Formula', 'Technique', 'Top1', 'Top3',
+               'Top5', 'Top10', 'FR', 'AR']
+    accumulated_results = pd.DataFrame(columns=columns)
+
+    # Iterate over the datasets and formulas
+    for dataset_name in dataset:
+        for formula in formulas:
+            formula_name = Formula.get_formula_name(formula)
+
+            # Initialize the sums for each technique
+            sums = {
+                'MBFL': {key: 0 for key in ['top1', 'top3', 'top5', 'top10', 'FR', 'AR', 'MTP']},
+                'SBFL': {key: 0 for key in ['top1', 'top3', 'top5', 'top10', 'FR', 'AR', 'MTP']},
+                'FTMES': {key: 0 for key in ['top1', 'top3', 'top5', 'top10', 'FR', 'AR', 'MTP']}
+            }
+
+            # Load the sum up evaluation results for each technique
+            MBFL_path = f"./data/baseline/mbfl/{dataset_name}/result/{formula_name}.json"
+            SBFL_path = f"./data/baseline/sbfl/{dataset_name}/result/{formula_name}.json"
+            FTMES_path = f"./data/baseline/ftmes/{dataset_name}/result/{formula_name}.json"
+
+            MBFL_results = json.load(open(MBFL_path))['results']
+            SBFL_results = json.load(open(SBFL_path))['results']
+            FTMES_results = json.load(open(FTMES_path))['results']
+
+            # Accumulate results for each project and technique
+            for technique, results in [('MBFL', MBFL_results), ('SBFL', SBFL_results), ('FTMES', FTMES_results)]:
+                for project_name, result in results.items():
+                    for key in ['top1', 'top3', 'top5', 'top10', 'FR', 'AR']:
+                        sums[technique][key] += result[key]
+                sums[technique]['FR'] = sums[technique]['FR'] / len(results)
+                sums[technique]['AR'] = sums[technique]['AR'] / len(results)
+                # Add the accumulated sums to the DataFrame
+                row = [formula_name, technique] + [sums[technique][key]
+                                                   for key in ['top1', 'top3', 'top5', 'top10', 'FR', 'AR']]
+                accumulated_results.loc[len(accumulated_results)] = row
+
+    # Write the accumulated results to an Excel file
+    excel_path = 'accumulated_results.xlsx'
+    accumulated_results.to_excel(excel_path, index=False)
+
+    print(f"Accumulated results saved to {excel_path}")

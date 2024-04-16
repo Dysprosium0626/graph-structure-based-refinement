@@ -31,10 +31,25 @@ if __name__ == "__main__":
                 SBFL_AR_values = []
                 for project_name, stat in results["results"].items():
                     SBFL_AR_values.append(stat["AR"])
-            methods = ['SBFL', 'MBFL', 'GBSR']
+            with open(f'./data/baseline/cbtcr/{dataset_name}/result/{Formula.get_formula_name(formula)}.json', 'r') as rf:
+                results = json.load(rf)
+                CBTCR_AR_values = []
+                for project_name, stat in results["results"].items():
+                    CBTCR_AR_values.append(stat["AR"])
+            with open(f'./data/baseline/random/{dataset_name}/result/{Formula.get_formula_name(formula)}.json', 'r') as rf:
+                results = json.load(rf)
+                RANDOM_AR_values = []
+                for project_name, stat in results["results"].items():
+                    RANDOM_AR_values.append(stat["AR"])
+            with open(f'./data/baseline/ftmes/{dataset_name}/result/{Formula.get_formula_name(formula)}.json', 'r') as rf:
+                results = json.load(rf)
+                FTMES_AR_values = []
+                for project_name, stat in results["results"].items():
+                    FTMES_AR_values.append(stat["AR"])
+            methods = ['SBFL', 'MBFL', 'CBTCR', 'RANDOM', 'ReGRaM']
             # 创建小提琴图
             sns.violinplot(
-                data=[SBFL_AR_values, MBFL_AR_values, GBSR_AR_values])
+                data=[SBFL_AR_values, MBFL_AR_values, CBTCR_AR_values, FTMES_AR_values, GBSR_AR_values])
 
             # 设置每个子图的标题
             plt.xticks(ticks=np.arange(len(methods)), labels=methods)
