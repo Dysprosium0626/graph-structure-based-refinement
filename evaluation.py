@@ -74,7 +74,7 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
 
     # 计算最终结果
     result = {"project_name": project_name, "top1": 0, "top3": 0, "top5": 0,
-              "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0}
+              "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "line_count": 0}
     for method, stat in method_stat.items():
         if stat["top1"] != 0:
             result["top1"] += 1
@@ -87,6 +87,7 @@ def get_top_suspicious_lines_from_all_files(directory_path, file_name, fault, me
         result["FR"] += stat["first"] if stat["first"] != sys.maxsize else 0
         result["AR"] += stat["sum_rank"] / \
             stat["line_count"] if stat["line_count"] != 0 else 0
+        result["line_count"] += stat["line_count"]
 
     result["fault_count"] = len(fault)
     result["MTP"] = json_data["current_MTP"]
@@ -130,9 +131,9 @@ if __name__ == "__main__":
                     reduced_mutant_ratio = round(reduced_mutant_ratio, 1)
                     for formula in formulas:
                         sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "results": {}}
+                                             "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "line_count": 0, "results": {}}
                         result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
-                                  "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
+                                  "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "line_count": 0, "MTP": 0}
                         for data in structural_data:
                             project_name = data['proj']
                             fault = data['ans']
@@ -146,15 +147,14 @@ if __name__ == "__main__":
                             sum_up_evaluation["top3"] += result["top3"]
                             sum_up_evaluation["top5"] += result["top5"]
                             sum_up_evaluation["top10"] += result["top10"]
-                            sum_up_evaluation["MFR"] += result["FR"]
-                            sum_up_evaluation["MAR"] += result["AR"]
                             sum_up_evaluation["MTP"] += result["MTP"]
-                            sum_up_evaluation["fault_count"] += 1
+                            sum_up_evaluation["fault_count"] += result["fault_count"]
+                            sum_up_evaluation["line_count"] += result["line_count"]
+                            sum_up_evaluation["MFR"] += result["FR"] 
+                            sum_up_evaluation["MAR"] += result["AR"] 
                             sum_up_evaluation["results"][project_name] = result
-                        sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
-                            sum_up_evaluation["fault_count"]
-                        sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
-                            sum_up_evaluation["fault_count"]
+                        sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / len(sum_up_evaluation["results"])
+                        sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / len(sum_up_evaluation["results"])
                         if save_selected_results(selected_statements_ratio, reduced_test_cases_ratio, reduced_mutant_ratio, method='gbsr'):
                             dictionary_to_json(
                                 sum_up_evaluation, f"./data/baseline/gbsr/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
@@ -207,9 +207,9 @@ if __name__ == "__main__":
                 reduced_test_cases_ratio, 1)
             for formula in formulas:
                 sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                     "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "results": {}}
+                                     "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "line_count":0, "results": {}}
                 result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
-                          "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
+                          "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "line_count":0, "MTP": 0}
                 for data in structural_data:
                     project_name = data['proj']
                     fault = data['ans']
@@ -223,15 +223,14 @@ if __name__ == "__main__":
                     sum_up_evaluation["top3"] += result["top3"]
                     sum_up_evaluation["top5"] += result["top5"]
                     sum_up_evaluation["top10"] += result["top10"]
+                    sum_up_evaluation["MTP"] += result["MTP"]
+                    sum_up_evaluation["fault_count"] += result["fault_count"]
+                    sum_up_evaluation["line_count"] += result["line_count"]
                     sum_up_evaluation["MFR"] += result["FR"]
                     sum_up_evaluation["MAR"] += result["AR"]
-                    sum_up_evaluation["MTP"] += result["MTP"]
-                    sum_up_evaluation["fault_count"] += 1
                     sum_up_evaluation["results"][project_name] = result
-                sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
-                    sum_up_evaluation["fault_count"]
-                sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
-                    sum_up_evaluation["fault_count"]
+                sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / len(sum_up_evaluation["results"])
+                sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / len(sum_up_evaluation["results"])
                 if save_selected_results(0, reduced_test_cases_ratio, 0, method='cbtcr'):
                     dictionary_to_json(
                         sum_up_evaluation, f"./data/baseline/cbtcr/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")
@@ -287,9 +286,9 @@ if __name__ == "__main__":
                     reduced_mutant_ratio, 1)
                 for formula in formulas:
                     sum_up_evaluation = {"formula": Formula.get_formula_name(formula), "top1": 0, "top3": 0, "top5": 0,
-                                        "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "results": {}}
+                                         "top10": 0, "MFR": 0.0, "MAR": 0.0, "MTP": 0.0, "fault_count": 0, "line_count":0, "results": {}}
                     result = {"project_name": "", "top1": 0, "top3": 0, "top5": 0,
-                            "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "MTP": 0}
+                              "top10": 0, "FR": 0.0, "AR": 0.0, "fault_count": 0, "line_count":0, "MTP": 0}
                     for data in structural_data:
                         project_name = data['proj']
                         fault = data['ans']
@@ -303,15 +302,14 @@ if __name__ == "__main__":
                         sum_up_evaluation["top3"] += result["top3"]
                         sum_up_evaluation["top5"] += result["top5"]
                         sum_up_evaluation["top10"] += result["top10"]
-                        sum_up_evaluation["MFR"] += result["FR"]
-                        sum_up_evaluation["MAR"] += result["AR"]
                         sum_up_evaluation["MTP"] += result["MTP"]
-                        sum_up_evaluation["fault_count"] += 1
+                        sum_up_evaluation["fault_count"] += result["fault_count"]
+                        sum_up_evaluation["line_count"] += result["line_count"]
+                        sum_up_evaluation["MFR"] += result["FR"] 
+                        sum_up_evaluation["MAR"] += result["AR"]
                         sum_up_evaluation["results"][project_name] = result
-                    sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / \
-                        sum_up_evaluation["fault_count"]
-                    sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / \
-                        sum_up_evaluation["fault_count"]
+                    sum_up_evaluation["MFR"] = sum_up_evaluation["MFR"] / len(sum_up_evaluation["results"])
+                    sum_up_evaluation["MAR"] = sum_up_evaluation["MAR"] / len(sum_up_evaluation["results"])
                     if save_selected_results(selected_statements_ratio, 1.0, reduced_mutant_ratio, method='random'):
                         dictionary_to_json(
                             sum_up_evaluation, f"./data/baseline/random/{dataset_name}/result/{Formula.get_formula_name(formula)}.json")

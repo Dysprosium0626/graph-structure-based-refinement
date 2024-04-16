@@ -20,6 +20,7 @@ if __name__ == "__main__":
     for i, sheet_name in enumerate(sheet_names):
         # 读取当前工作表的数据
         df = pd.read_excel(excel_file, sheet_name=sheet_name)
+        df_selected = df[df['selected_statements_ratio'] == 0.2]
 
         # 定位当前的子图位置
         ax1 = axs[i // 2, i % 2]
@@ -30,21 +31,21 @@ if __name__ == "__main__":
         x.sort()
 
         # 绘制MAP的折线图
-        ax1.plot(x, df.groupby('reduced_test_cases_ratio')[
-                'MAP'].mean(), label='MAP (reduced test cases)', color='blue')
-        ax1.plot(x, df.groupby('reduced_mutant_ratio')['MAP'].mean(
-        ), label='MAP (reduced mutants)', color='blue', linestyle='dashed')
+        ax1.plot(x, df_selected.groupby('reduced_test_cases_ratio')[
+            'MAP'].mean(), label='MAR (reduced test cases)', color='blue')
+        ax1.plot(x, df_selected.groupby('reduced_mutant_ratio')['MAP'].mean(
+        ), label='MAR (reduced mutants)', color='blue', linestyle='dashed')
 
         # 绘制MFR的折线图
-        ax2.plot(x, df.groupby('reduced_test_cases_ratio')[
+        ax2.plot(x, df_selected.groupby('reduced_test_cases_ratio')[
                 'MFR'].mean(), label='MFR (reduced test cases)', color='orange')
-        ax2.plot(x, df.groupby('reduced_mutant_ratio')['MFR'].mean(
+        ax2.plot(x, df_selected.groupby('reduced_mutant_ratio')['MFR'].mean(
         ), label='MFR (reduced mutants)', color='orange', linestyle='dashed')
 
         # 设置子图标题和轴标签
         ax1.set_title(sheet_name)
         ax1.set_xlabel('Reduction ratio')
-        ax1.set_ylabel('MAP')
+        ax1.set_ylabel('MAR')
         ax2.set_ylabel('MFR')
 
         # 显示图例
